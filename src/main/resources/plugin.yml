@@ -1,0 +1,30 @@
+name: SurvivalGames
+version: '${project.version}'
+main: hwnet.survivalgames.SG
+api-version: 1.18
+authors: [ Nedlow ]
+description: Dedicated Survival Games game mode, written for hwNET.
+commands:
+  sg:
+  addspawn:
+    permission: sg.admin
+  addarena:
+    permission: sg.admin
+  vote:
+  editarena:
+    permission: sg.admin
+  savearena:
+    permission: sg.admin
+  fstart:
+    permission: sg.admin
+  forcedm:
+    permission: sg.admin
+  join:
+  leave:
+  setlobby:
+    permission: sg.admin
+  tploc:
+    permission: sg.admin
+  points:
+  volunteer:
+  spectate:

@@ -1,0 +1,68 @@
+settings:
+  # DO NOT TOUCH
+  lastmap: null
+  rewriteconfig: false
+  # Minimum players to start game (Overridden by /fstart command)
+  minPlayers: 4
+  # Time until start(minutes)
+  pretime: 3
+  # Time until deathmatch(minutes)
+  deathmatch: 30
+  # team size (0 for no teams)
+  teamSize: 2
+  # Bungeecord
+  bungeecord: false
+  # If bungeecord, server to move them to
+  lobbyserver: lobby
+  chat: # Chat format: %points %name %msg
+    customprefix: true
+    prefix: '&8[&cSG&8]'
+    format: '<&a[&b%points&a]&r%name> %msg'
+  motd: # Set the MOTD here, colour codes do work
+    lobby: "Lobby %newline% Join "
+    ingame: "Ingame %newline% Full"
+lobby: # Lobby spawn location. Setup with /tploc <world> <x> <y> <z> then /setlobby
+  enabled: false
+  world: world
+  x: 0.5
+  y: 1.0
+  z: 0.5
+  pitch: 0
+  yaw: 0
+  # Chests
+  # Add ITEM IDS to this list, followed by the amount.
+  # These items will randomly spawn in chests around the arena
+  # Item ID List: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Material.html
+chests:
+  contents:
+    - APPLE,3
+    - IRON_SWORD,1
+    - STONE_AXE,1
+    - COOKED_BEEF,3
+    - DIAMOND,1
+    - WOOD_SWORD,1
+    - STICK,1
+    - TNT,2
+    - FLINT_AND_STEEL,1
+    - MUSHROOM_SOUP,1
+    - FISHING_ROD,1
+    - BOW,1
+    - ARROW,8
+    - CHAINMAIL_CHESTPLATE,1
+    - CHAINMAIL_LEGGINGS,1
+    - LEATHER_HELMET,1
+    - LEATHER_CHESTPLATE,1
+    - LEATHER_LEGGINGS,1
+    - LEATHER_BOOTS,1
+points:
+  win: 100
+  lose: 20
+  kill: 10
+mysql: # Enable for stats
+  enabled: false
+  host: localhost
+  port: 3306
+  username: root
+  password: password
+  database: database
+  table: sg_stats
