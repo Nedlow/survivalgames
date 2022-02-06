@@ -1,4 +1,4 @@
-# sg_rewrite
+# Survival Games: Districts of Panem
 Rewrite and upgrade of my previous SG plugin.
 
 
@@ -6,6 +6,7 @@ Rewrite and upgrade of my previous SG plugin.
 It is firstly made to run only one match per server, and is therefore supposed to be used with BungeeCord. There is a setting for this in the config.
 - Easy setup
 - Open source!
+- District mode: Allows for 12 teams of 2 players
 
 
 TODO:
