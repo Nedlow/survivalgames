@@ -9,7 +9,8 @@ It is firstly made to run only one match per server, and is therefore supposed t
 
 
 TODO:
-- Sponsorship: Uses players points to buy items for a user ingame from a menu
+- Sponsorship: Let's spectators buy special items for alive players.
+- World Events: Player or location based, eg. zombies or toxic fog.
 
 ### Setup
 Setting up this plugin is quite simple. All you need is the plugin itself, some arenas, and a server that restarts itself or multicraft host.  
