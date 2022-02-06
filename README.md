@@ -5,8 +5,10 @@ Rewrite and upgrade of my previous SG plugin.
 ### Features
 It is firstly made to run only one match per server, and is therefore supposed to be used with BungeeCord. There is a setting for this in the config.
 - Easy setup
-- Open source!
+- Open source
+- Deathmatch mode to finish maps in reasonable time
 - District mode: Allows for 12 teams of 2 players
+- Configurable chest contents
 
 
 TODO:
@@ -14,7 +16,7 @@ TODO:
 - World Events: Player or location based, eg. zombies or toxic fog.
 
 ### Setup
-Setting up this plugin is quite simple. All you need is the plugin itself, some arenas, and a server that restarts itself or multicraft host.  
+Setting up this plugin is quite simple. All you need is the plugin itself, some arenas, and a server that restarts itself or host.  
 1. Copy all arenas into your server root folder, and make sure all the names are short and have no spaces. (sg1,sg2,sge)  
 2. Go ingame and type /addmap <filename> <Displayname>. 
 3. Type /editarena <filename>. 
