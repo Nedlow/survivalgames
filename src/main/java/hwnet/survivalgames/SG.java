@@ -68,6 +68,14 @@ public class SG extends JavaPlugin {
 
     public static ScoreboardUtil SBU;
 
+    /*
+
+    Github collaboration test
+
+
+     */
+
+
     @Override
     public void onLoad() {
         configs();
