@@ -9,6 +9,7 @@ import hwnet.survivalgames.SG;
 
 public class ChatHandler implements Listener {
 
+/*
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
         int points = PointSystem.getPoints(e.getPlayer());
@@ -16,4 +17,6 @@ public class ChatHandler implements Listener {
                 .replace("%name", e.getPlayer().getName()).replace("%msg", e.getMessage());
         e.setFormat(ChatColor.translateAlternateColorCodes('&', format));
     }
+
+ */
 }

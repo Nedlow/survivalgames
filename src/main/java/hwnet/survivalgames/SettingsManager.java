@@ -12,7 +12,8 @@ import org.bukkit.plugin.PluginDescriptionFile;
 
 public class SettingsManager {
 
-    private SettingsManager() { }
+    private SettingsManager() {
+    }
 
     static SettingsManager instance = new SettingsManager();
 
@@ -32,14 +33,12 @@ public class SettingsManager {
         if (!p.getDataFolder().exists()) {
             p.getDataFolder().mkdir();
         }
-
         dfile = new File(p.getDataFolder(), "data.yml");
 
         if (!dfile.exists()) {
             try {
                 dfile.createNewFile();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 Bukkit.getServer().getLogger().severe(ChatColor.RED + "Could not create data.yml!");
             }
         }
@@ -54,8 +53,7 @@ public class SettingsManager {
     public void saveData() {
         try {
             data.save(dfile);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             Bukkit.getServer().getLogger().severe(ChatColor.RED + "Could not save data.yml!");
         }
     }

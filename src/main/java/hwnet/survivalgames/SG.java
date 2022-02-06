@@ -10,7 +10,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Random;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import hwnet.survivalgames.commands.*;
@@ -46,7 +45,7 @@ import hwnet.survivalgames.listeners.StartListener;
 import hwnet.survivalgames.utils.ChatUtil;
 import hwnet.survivalgames.utils.LocUtil;
 import hwnet.survivalgames.utils.ResetMap;
-import org.bukkit.scoreboard.*;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public class SG extends JavaPlugin {
 
@@ -58,8 +57,8 @@ public class SG extends JavaPlugin {
     public static FileConfiguration data = SettingsManager.getInstance().getData();
     public static ConsoleCommandSender cmd = Bukkit.getConsoleSender();
 
-    public static int gamePID, PreGamePID, DMPID;
-    public static int pretime, gametime, dmtime, dm, minPlayers;
+    public static int gamePID, PreGamePID, DMPID, compassPID, fireworksPID;
+    public static int pretime, gametime, dmtime, dm, minPlayers, maxPlayers;
 
     public static SG pl;
 
@@ -81,7 +80,7 @@ public class SG extends JavaPlugin {
         configs();
         SettingsManager.getInstance().setup(this);
 
-        String lastmap = config.getString("lastmap");
+        String lastmap = config.getConfigurationSection("settings").getString("lastmap");
         if (lastmap == null || lastmap.equalsIgnoreCase("null")) {
             cmd.sendMessage("No maps played yet.");
         } else {
@@ -103,6 +102,10 @@ public class SG extends JavaPlugin {
 
         minPlayers = getConfig().getConfigurationSection("settings").getInt("settings.");
         Team.setTeamSize(SG.config.getConfigurationSection("settings").getInt("teamSize"));
+        ChatUtil.setChatFormat(SG.config.getConfigurationSection("settings.chat").getString("format"));
+        maxPlayers = 24;
+        if (config.getBoolean("lobby.enabled"))
+            Bukkit.getWorld(config.getString("lobby.world")).setSpawnLocation(LocUtil.getLobbyLocation());
 
         if (getConfig().getConfigurationSection("settings.chat").getBoolean("customprefix")) {
             ChatUtil.setPrefix(SG.config.getConfigurationSection("settings.chat").getString("prefix"));
@@ -111,10 +114,10 @@ public class SG extends JavaPlugin {
         dmtime = getConfig().getInt("settings.deathmatch") * 60;
         data = SettingsManager.getInstance().getData();
 
-        ChatUtil.sendMessage(clogger, ChatColor.RED + "---------------------------------------");
-        ChatUtil.sendMessage(clogger, ChatColor.GREEN + "Enabling SurvivalGames by "
+        ChatUtil.sendMessage(clogger, ChatColor.GOLD + "==================================");
+        ChatUtil.sendMessage(clogger, ChatColor.AQUA + "Enabling SurvivalGames by "
                 + getDescription().getAuthors().toString().replace("[", "").replace("]", ""));
-        ChatUtil.sendMessage(clogger, ChatColor.RED + "---------------------------------------");
+        ChatUtil.sendMessage(clogger, ChatColor.GOLD + "==================================");
 
         if (data.getConfigurationSection("arenas") == null) {
             ChatUtil.sendMessage(clogger, ChatColor.translateAlternateColorCodes('&', "&4No arenas created!"));
@@ -125,23 +128,19 @@ public class SG extends JavaPlugin {
                 ResetMap.createBackup(map, this);
                 WorldCreator worldc = new WorldCreator(map.getFileName());
                 World world = worldc.createWorld();
-                //ChatUtil.sendMessage(clogger, "World '" + world.getName() + "' imported"); //debug
             }
             Random rand = new Random();
 
             if (Map.getAllMaps().size() >= 6) {
-                //ChatUtil.sendMessage(clogger, "Size is bigger than 6"); //debug
                 for (int i = 0; i < 6; i++) {
                     Map map = Map.getAllMaps().get(rand.nextInt(Map.getAllMaps().size()));
                     Map.setTempId(map, i + 1);
                     Map.setVoteMaps();
                 }
             } else {
-                //clogger.sendMessage(ChatColor.translateAlternateColorCodes('&', "&eSize: " + Map.getAllMaps().size())); //debug
                 for (int i = 0; i < Map.getAllMaps().size(); i++) {
                     Map map = Map.getAllMaps().get(i);
                     Map.setTempId(map, i + 1);
-                    //ChatUtil.sendMessage(clogger, map.getMapName() + " : " + Map.getTempId(map)); //Debug
                 }
                 Map.setVoteMaps();
             }
@@ -247,7 +246,6 @@ public class SG extends JavaPlugin {
         getCommand("tploc").setExecutor(new TPLoc());
         getCommand("sg").setExecutor(new SGCommand());
         getCommand("points").setExecutor(new Points());
-
         getCommand("spectate").setExecutor(new Spectate());
 
         PluginManager pm = Bukkit.getPluginManager();
@@ -267,8 +265,6 @@ public class SG extends JavaPlugin {
 
     private void registerPreEvents() {
         preListener = new JoinListener();
-        // MinecraftServer.getServer().setMotd(" " +
-        // SG.config.getString("settings.motd.lobby"));
         Bukkit.getPluginManager().registerEvents(preListener, this);
     }
 
@@ -312,16 +308,9 @@ public class SG extends JavaPlugin {
             @Override
             public void run() {
                 if (pretime % 60 == 0) {
-                    ChatUtil.broadcast(ChatColor.translateAlternateColorCodes('&',
-                            "&6==== &bSurvivalGames: &eVoting &6===="));
-                    ChatUtil.broadcast("Vote: [/vote <id>]");
-                    for (Map map : Map.getVoteMaps()) {
-                        ChatUtil.broadcast(Map.getTempId(map) + " > " + map.getMapName() + " ["
-                                + VoteHandler.getVotesMap(map) + " votes]");
+                    for (Gamer g : Gamer.getGamers()) {
+                        ChatUtil.sendVoteMenu(g.getPlayer());
                     }
-                    ChatUtil.broadcast(ChatColor.translateAlternateColorCodes('&',
-                            "&6=================================="));
-
                     if (pretime == 60) {
                         ChatUtil.broadcast("Game starting in " + pretime / 60 + " minute.");
                     } else if (pretime > 60) {
@@ -334,10 +323,6 @@ public class SG extends JavaPlugin {
 
                 if (pretime == 45 || pretime == 30 || pretime == 15 || (pretime >= 0 && pretime <= 10)) {
                     ChatUtil.broadcast("Game starting in " + pretime + " seconds.");
-                    for (Gamer gl : Gamer.getGamers()) {
-                        gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.BLOCK_NOTE_BLOCK_COW_BELL, 20, 1);
-                    }
-
                 }
                 if (pretime == 0) {
                     Game.start();
@@ -348,16 +333,37 @@ public class SG extends JavaPlugin {
     }
 
     public static void startGameTimer() {
+
+        compassPID = Bukkit.getScheduler().scheduleSyncRepeatingTask(SG.pl, new Runnable() {
+            int countdown = 10;
+            int dmcountdown = 10;
+
+            World w = Map.getActiveMap().getWorld();
+
+            @Override
+            public void run() {
+                for (Team t : Team.getAliveTeams()) {
+                    for (Player p : t.getAlivePlayers()) {
+                        p.setCompassTarget(t.getClosestPlayer(p).getLocation());
+                    }
+                }
+            }
+
+        }, 0, 20 * 10);
+
         gamePID = Bukkit.getScheduler().scheduleSyncRepeatingTask(SG.pl, new Runnable() {
             int countdown = 10;
             int dmcountdown = 10;
 
+            World w = Map.getActiveMap().getWorld();
+
             @Override
             public void run() {
                 if (gametime <= 15 && gametime > 5) {
-                    ChatUtil.broadcast("&cStarting in &4&l" + countdown + " &r&cseconds!");
+                    //ChatUtil.broadcast("&cStarting in &4&l" + countdown + " &r&cseconds!");
                     for (Gamer gl : Gamer.getGamers()) {
-                        gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 20, 1);
+                        gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.BLOCK_NOTE_BLOCK_COW_BELL, 20, 1);
+                        gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&4") + String.valueOf(countdown), "", 5, 10, 5);
                     }
                     countdown--;
                 }
@@ -367,36 +373,42 @@ public class SG extends JavaPlugin {
                     registerGraceEvents();
                     for (Gamer gl : Gamer.getGamers()) {
                         gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 20, 1);
+                        gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&bRun!"), ChatColor.translateAlternateColorCodes('&', "&eGrace period lasts for 5 seconds."), 5, 10 * 3, 10);
                     }
+
+                    /*
                     ChatUtil.broadcast("&b&lThe game has started!");
                     ChatUtil.broadcast("&eThere is a grace period for 5 seconds.");
+                     */
                 }
                 if (gametime == 22) {
                     unregisterGraceEvents();
                     for (Gamer gl : Gamer.getGamers()) {
-                        gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.ENTITY_GHAST_WARN, 20, 1);
+                        gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.AMBIENT_CAVE, 20, 1);
                     }
                     ChatUtil.broadcast("&6Grace period is over! &lFight&r&6!");
                 }
                 if (gametime == (dmtime / 60 - 10) * 60) {
                     ChatUtil.broadcast("&cDeathmatch in &4&l10 &cminutes.");
+                    w.setStorm(true);
                 }
                 if (gametime == (dmtime / 60 - 5) * 60) {
                     ChatUtil.broadcast("&cDeathmatch in &4&l5 &cminutes.");
-                    Bukkit.getWorld(Map.getActiveMap().getFileName()).setTime(8000);
+
                 }
                 if (gametime == (dmtime / 60 - 1) * 60) {
                     ChatUtil.broadcast("&cDeathmatch in &4&l1 &cminute. Players will be teleported soon.");
                 }
                 if (gametime == dmtime - 20) {
-                    World w = Map.getActiveMap().getWorld();
+
+                    w.setStorm(false);
                     w.setClearWeatherDuration(3600);
                     w.setTime(11000);
                     ChatUtil.broadcast("&cTeleporting players to deathmatch. Waiting for players to load world.");
                     registerStartEvents();
                     ChestHandler.fillAllChests(Map.getActiveMap().getFileName());
                     WorldBorder border = w.getWorldBorder();
-                    border.setSize(72);
+                    border.setSize(68);
                     border.setCenter(Map.getActiveMap().getCenterLocation());
                     int i = 0;
                     ArrayList<Integer> usedSpawns = new ArrayList<>();
@@ -499,7 +511,13 @@ public class SG extends JavaPlugin {
         } else if (team.getAlivePlayers().size() == 1) {
             ChatUtil.broadcast("&6&l" + team.getAlivePlayers().get(0).getName() + "&r from District " + team.getName() + " won the SurvivalGames!");
         }
-        spawnFireworks(Map.getActiveMap().getCenterLocation(), 5);
+
+        if (GameState.getState() == GameState.ENDGAME) {
+            spawnFireworks(true);
+        } else {
+            spawnFireworks(false);
+        }
+
         for (Player pl : Bukkit.getOnlinePlayers()) {
             //pl.playSound(Map.getActiveMap().getCenterLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 20, 1);
             pl.playSound(Map.getActiveMap().getCenterLocation(), Sound.MUSIC_DISC_CAT, 20, 1);
@@ -526,23 +544,109 @@ public class SG extends JavaPlugin {
         }, 20L * 20);
     }
 
-    public static void spawnFireworks(Location location, int amount) {
-        Location loc = location;
-        Firework fw = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK);
-        FireworkMeta fwm = fw.getFireworkMeta();
+    public static void spawnFireworks(boolean dm) {
+        if (dm) {
+            fireworksPID = Bukkit.getScheduler().scheduleSyncRepeatingTask(SG.pl, new Runnable() {
 
-        fwm.setPower(2);
-        fwm.addEffect(FireworkEffect.builder().with(FireworkEffect.Type.BALL_LARGE).withColor(Color.LIME).flicker(true)
-                .build());
 
-        fw.setFireworkMeta(fwm);
-        fw.detonate();
+                int amount = Map.getActiveMap().getSpawns().size();
+                int current = 0;
+                int i = 1;
 
-        for (int i = 0; i < amount; i++) {
-            Firework fw2 = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK);
-            fw2.setFireworkMeta(fwm);
+                @Override
+                public void run() {
+
+                    Location loc = Map.getActiveMap().getSpawn(current).add(0, 10, 0);
+                    current++;
+
+                    Firework fw = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK);
+                    FireworkMeta fwm = fw.getFireworkMeta();
+
+                    Color color = Color.RED;
+                    if (i == 1) {
+                        color = Color.LIME;
+                    } else if (i == 2) {
+                        color = Color.MAROON;
+                    } else if (i == 3) {
+                        color = Color.YELLOW;
+                    } else if (i == 4) {
+                        color = Color.AQUA;
+                    }
+
+                    fwm.addEffect(FireworkEffect.builder().with(FireworkEffect.Type.BALL_LARGE).withColor(color).flicker(true)
+                            .build());
+                    fwm.setPower(3);
+                    fw.setFireworkMeta(fwm);
+                    fw.detonate();
+                    if (i == 4) i = 1;
+                    else i++;
+
+                    if (current == amount) {
+                        Bukkit.getScheduler().cancelTask(fireworksPID);
+                    }
+
+                }
+            }, 0, 5);
+        } else {
+            Location loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation();
+            for (int i = 1; i <= 4; i++) {
+                if (i == 1) {
+                    loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(10, 15, 0);
+                } else if (i == 2) {
+                    loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(-10, 15, 0);
+                } else if (i == 3) {
+                    loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(0, 15, 10);
+                } else if (i == 4) {
+                    loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(0, 15, -10);
+                }
+                Firework fw = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK);
+                FireworkMeta fwm = fw.getFireworkMeta();
+
+                Color color = Color.RED;
+                if (i == 1) {
+                    color = Color.LIME;
+                } else if (i == 2) {
+                    color = Color.MAROON;
+                } else if (i == 3) {
+                    color = Color.YELLOW;
+                } else if (i == 4) {
+                    color = Color.AQUA;
+                }
+
+                fwm.addEffect(FireworkEffect.builder().with(FireworkEffect.Type.BALL_LARGE).withColor(color).flicker(true)
+                        .build());
+                fwm.setPower(3);
+                fw.setFireworkMeta(fwm);
+                fw.detonate();
+            }
         }
+        /*
+
+        for (Location loc : Map.getActiveMap().getSpawns()) {
+            Firework fw = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK);
+            FireworkMeta fwm = fw.getFireworkMeta();
+
+            fwm.setPower(2);
+            Color color = Color.RED;
+            if (i == 1) {
+                color = Color.LIME;
+            } else if (i == 2) {
+                color = Color.MAROON;
+            } else if (i == 3) {
+                color = Color.YELLOW;
+            } else if (i == 4) {
+                color = Color.AQUA;
+            }
+
+
+            fwm.addEffect(FireworkEffect.builder().with(FireworkEffect.Type.BALL_LARGE).withColor(color).flicker(true)
+                    .build());
+            fwm.setPower(2);
+            fw.setFireworkMeta(fwm);
+            fw.detonate();
+            if (i == 4) i = 1;
+            else i++;
+        }
+        */
     }
-
-
 }

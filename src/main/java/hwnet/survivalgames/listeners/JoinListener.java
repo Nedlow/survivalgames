@@ -1,5 +1,6 @@
 package hwnet.survivalgames.listeners;
 
+import hwnet.survivalgames.handlers.*;
 import hwnet.survivalgames.utils.LocUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -18,22 +19,14 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.player.PlayerLoginEvent.Result;
-import org.bukkit.event.player.PlayerPickupItemEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.server.ServerListPingEvent;
+import org.bukkit.event.weather.WeatherChangeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import hwnet.survivalgames.SG;
-import hwnet.survivalgames.handlers.Gamer;
-import hwnet.survivalgames.handlers.Map;
-import hwnet.survivalgames.handlers.PointSystem;
-import hwnet.survivalgames.handlers.VoteHandler;
 import hwnet.survivalgames.utils.ChatUtil;
 
 public class JoinListener implements Listener {
@@ -45,54 +38,23 @@ public class JoinListener implements Listener {
     }
 
     @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
-        Gamer g = Gamer.getGamer(event.getPlayer());
-        g.remove();
-        PointSystem.save(event.getPlayer());
-    }
-
-    @EventHandler(priority = EventPriority.NORMAL)
-    public void onCreatureSpawn(CreatureSpawnEvent event) {
-        event.setCancelled(true);
-    }
-
-    @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
         FileConfiguration c = SG.config;
-        World w = Bukkit.getWorld(c.getString("lobby.world"));
-        /*
-        double x = c.getDouble("lobby.x");
-        double y = c.getDouble("lobby.y");
-        double z = c.getDouble("lobby.z");
-        float pitch = (float) c.getInt("lobby.pitch");
-        float yaw = (float) c.getInt("lobby.yaw");
-        Location loc = new Location(w, x, y, z, yaw, pitch);
-        p.teleport(loc);
-        */
         LocUtil.teleportToLobby(p);
         SG.clearPlayer(p);
 
         // SCOREBOARD
         SG.SBU.setScoreboard(p);
 
-        p.setGameMode(GameMode.SURVIVAL);
+        p.setGameMode(GameMode.ADVENTURE);
         if (!PointSystem.load(p)) {
-            System.out.println("Set points for player");
             PointSystem.setPoints(p, 0);
         }
         if (p.hasPermission("sg.admin")) {
-            p.sendMessage("Joined as admin. Type /join to join the game");
+            ChatUtil.sendMessage(p, "Joined as admin. Type /join to join the game");
         } else {
-            ChatUtil.broadcast(ChatColor.translateAlternateColorCodes('&',
-                    "&6==== &bSurvivalGames: &eVoting &6===="));
-            ChatUtil.sendMessage(p, "Vote: [/vote <id>]");
-            for (Map map : Map.getVoteMaps()) {
-                ChatUtil.sendMessage(p, Map.getTempId(map) + " > " + map.getMapName() + " ["
-                        + VoteHandler.getVotesMap(map) + " votes]");
-            }
-            ChatUtil.broadcast(ChatColor.translateAlternateColorCodes('&',
-                    "&6=================================="));
+            ChatUtil.sendVoteMenu(p);
             Gamer.getGamer(p);
             p.sendMessage(ChatColor.AQUA + "" + Gamer.getGamers().size() + "/24" + ChatColor.GREEN
                     + " tributes waiting to play.");
@@ -104,6 +66,31 @@ public class JoinListener implements Listener {
             s.setItemMeta(m);
             p.getInventory().setItem(8, s);
         }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        Gamer g = Gamer.getGamer(event.getPlayer());
+        g.remove();
+        PointSystem.save(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent e) {
+        int points = PointSystem.getPoints(e.getPlayer());
+        e.setMessage(ChatUtil.getFormat().replace("%points", String.valueOf(points)).replace("%name", e.getPlayer().getName()).
+                replace("%msg", e.getMessage()));
+    }
+
+
+    @EventHandler
+    public void onWeatherChange(WeatherChangeEvent e) {
+        e.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onCreatureSpawn(CreatureSpawnEvent event) {
+        event.setCancelled(true);
     }
 
     @EventHandler

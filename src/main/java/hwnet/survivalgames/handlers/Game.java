@@ -1,6 +1,7 @@
 package hwnet.survivalgames.handlers;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import org.bukkit.*;
@@ -11,6 +12,8 @@ import hwnet.survivalgames.SG;
 import hwnet.survivalgames.events.GameStartEvent;
 import hwnet.survivalgames.utils.ChatUtil;
 import hwnet.survivalgames.utils.LocUtil;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public class Game {
 
@@ -41,8 +44,9 @@ public class Game {
                 Map.setActiveMap(Map.getMapById(randomMapNum));
             } else {
                 Map.setActiveMap(VoteHandler.getWithMostVotes());
+                Map.getActiveMap().initializeSpawns();
                 SG.config.getConfigurationSection("settings").set("lastmap", Map.getActiveMap().getFileName());
-                System.out.println("Active Map: " + Map.getActiveMap().getMapName());
+                SG.pl.saveConfig();
                 World w = Map.getActiveMap().getWorld();
                 WorldBorder border = w.getWorldBorder();
                 w.setClearWeatherDuration(3600 * 20);
@@ -79,6 +83,13 @@ public class Game {
                     usedSpawns.add(i);
                     Player p = pla.getPlayer();
                     SG.clearPlayer(p);
+                    ItemStack compass = new ItemStack(Material.COMPASS);
+                    ItemMeta meta = compass.getItemMeta();
+                    List<String> lore = new ArrayList<String>();
+                    lore.add("Shows the direction of your closest teammate.");
+                    meta.setLore(lore);
+                    compass.setItemMeta(meta);
+                    p.getInventory().setItem(8, compass);
                     participants.add(p);
                     LocUtil.teleportToGame(p, i);
                     p.setGameMode(GameMode.SURVIVAL);

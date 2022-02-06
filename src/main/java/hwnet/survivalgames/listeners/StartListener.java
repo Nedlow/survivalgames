@@ -1,5 +1,6 @@
 package hwnet.survivalgames.listeners;
 
+import hwnet.survivalgames.handlers.Gamer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -11,9 +12,10 @@ public class StartListener implements Listener {
 
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
-        if (e.getTo().getX() == e.getFrom().getX() && e.getTo().getZ() == e.getFrom().getZ())
-            return;
-        e.getPlayer().teleport(e.getFrom());
+        if (Gamer.getAliveGamers().contains(e.getPlayer())) {
+            if (e.getTo().getX() == e.getFrom().getX() && e.getTo().getZ() == e.getFrom().getZ()) return;
+            e.setCancelled(true);
+        }
     }
 
     @EventHandler

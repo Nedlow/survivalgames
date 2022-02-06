@@ -12,6 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 
 import hwnet.survivalgames.SG;
@@ -20,6 +21,9 @@ import hwnet.survivalgames.events.GamerKillEvent;
 import hwnet.survivalgames.handlers.Gamer;
 import hwnet.survivalgames.handlers.PointSystem;
 import hwnet.survivalgames.utils.ChatUtil;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerChatEvent;
+import org.bukkit.event.weather.WeatherChangeEvent;
 
 public class IngameListener implements Listener {
 
@@ -27,6 +31,25 @@ public class IngameListener implements Listener {
     public void onCreatureSpawn(CreatureSpawnEvent event) {
         event.setCancelled(true);
     }
+
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent e) {
+        e.setCancelled(true);
+        Team t = Team.getTeam(e.getPlayer());
+        int points = PointSystem.getPoints(e.getPlayer());
+        String format = ChatUtil.getFormat().replace("%points", String.valueOf(points)).replace("%name", e.getPlayer().getName()).
+                replace("%msg", e.getMessage());
+        for (Player p : t.getPlayers()) {
+            p.sendMessage(format);
+            ChatUtil.sendMessage(SG.cmd, format);
+        }
+    }
+
+    @EventHandler
+    public void onWeatherChange(WeatherChangeEvent e) {
+        e.setCancelled(true);
+    }
+
 
     @EventHandler
     public void onDeath2(EntityDamageByEntityEvent e) {
@@ -81,6 +104,60 @@ public class IngameListener implements Listener {
 
             }
         }
+    }
+
+    @EventHandler
+    public void onNaturalDamage(EntityDamageEvent e) {
+        if (e.getEntity() instanceof Player) {
+            Player p = (Player) e.getEntity();
+            if (p.getHealth() - e.getFinalDamage() < 1) {
+                p.setHealth(20);
+                p.setGameMode(GameMode.SPECTATOR);
+                Gamer g = Gamer.getGamer(p);
+                g.setAlive(false);
+
+                for (Player pl : Bukkit.getOnlinePlayers()) {
+                    pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 20, 1);
+                    pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 20, 1);
+                }
+                ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/"
+                        + Gamer.getGamers().size() + " tributes remain");
+
+                Team t = Team.getTeam(p);
+
+                if (t.getAlivePlayers().size() < 1) {
+                    t.setIsAlive(false);
+                    for (Player po : t.getPlayers()) {
+                        po.setSpectatorTarget(null);
+                    }
+                    if (Team.getAliveTeams().size() == 1) {
+                        SG.win(Team.getAliveTeams().get(0));
+                    } else {
+                        ChatUtil.broadcast("District " + t.getName() + " has been eliminated! Only " + Team.getAliveTeams().size() + " left.");
+                    }
+                }
+
+                if (Team.getTeam(p).isAlive()) {
+                    p.setSpectatorTarget(Team.getTeam(p).getAlivePlayers().get(0));
+                }
+
+
+            }
+        }
+    }
+
+    @EventHandler
+    public void onBreak(BlockBreakEvent event) {
+        if
+        (event.getPlayer().getGameMode() != GameMode.SURVIVAL) return;
+        if
+        (event.getBlock().getType() == Material.LEGACY_LEAVES)
+            event.setCancelled(true);
+        if (event.getBlock().getType() == Material.GLASS)
+            event.setCancelled(true);
+        if (event.getBlock().getType() == Material.LEGACY_THIN_GLASS)
+            event.setCancelled(true);
+    }
 
         /*
 
@@ -132,7 +209,6 @@ public class IngameListener implements Listener {
                     Gamer.getGamer(d).addKill();
             }
         } */
-    }
 
 
     /* Death event not working, implementing more checks in EntityDamageEntityEvent
@@ -175,17 +251,4 @@ public class IngameListener implements Listener {
         PointSystem.save(p);
     }
 */
-
-    @EventHandler
-    public void onBreak(BlockBreakEvent event) {
-        if
-        (event.getPlayer().getGameMode() != GameMode.SURVIVAL) return;
-        if
-        (event.getBlock().getType() == Material.LEGACY_LEAVES)
-            event.setCancelled(true);
-        if (event.getBlock().getType() == Material.GLASS)
-            event.setCancelled(true);
-        if (event.getBlock().getType() == Material.LEGACY_THIN_GLASS)
-            event.setCancelled(true);
-    }
 }

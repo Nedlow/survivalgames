@@ -109,6 +109,24 @@ public class Team {
         teamSize = size;
     }
 
+    public Player getClosestPlayer(Player p) {
+
+        Player first = null;
+        double lastDistance = 1000;
+        for (Player pl : this.getAlivePlayers()) {
+            if (pl == p) continue;
+            first = pl;
+        }
+
+        for (Player plo : this.getAlivePlayers()) {
+            if (p.getLocation().distance(plo.getLocation()) < lastDistance) {
+                lastDistance = p.getLocation().distance(plo.getLocation());
+                first = plo;
+            }
+        }
+        return first;
+    }
+
     public List<Player> getPlayers() {
         List<Player> players = new ArrayList<Player>();
         for (String s : pTeams.keySet()) {

@@ -7,6 +7,7 @@ import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import hwnet.survivalgames.SettingsManager;
@@ -18,6 +19,7 @@ public class Map {
     private static Map activeMap = null;
     private static List<Map> voteMaps = new ArrayList<Map>();
     private static List<Map> allMaps = new ArrayList<Map>();
+    private List<Location> spawns = new ArrayList<>();
 
     private String fileName, MapName;
     private static HashMap<Map, Integer> tempId = new HashMap<Map, Integer>();
@@ -84,8 +86,24 @@ public class Map {
         return Bukkit.getWorld(fileName);
     }
 
+    public List<Location> getSpawns() {
+        return this.spawns;
+    }
+
+    public void initializeSpawns() {
+        SettingsManager.getInstance().getData().getList("arenas." + this.getFileName() + ".spawns");
+        for (int id = 0; id < 24; id++) {
+            World world = Bukkit.getWorld(Map.getActiveMap().getFileName());
+            double x = data.getDouble("arenas." + Map.getActiveMap().getFileName() + ".spawns." + id + ".x");
+            double y = data.getDouble("arenas." + Map.getActiveMap().getFileName() + ".spawns." + id + ".y");
+            double z = data.getDouble("arenas." + Map.getActiveMap().getFileName() + ".spawns." + id + ".z");
+            float yaw = (float) data.getDouble("arenas." + Map.getActiveMap().getFileName() + ".spawns." + id + ".yaw");
+            float pitch = (float) data.getDouble("arenas." + Map.getActiveMap().getFileName() + ".spawns." + id + ".pitch");
+            spawns.add(new Location(world, x, y, z, yaw, pitch));
+        }
+    }
+
     public Location getSpawn(int id) {
-        System.out.println(Map.getActiveMap().getFileName());
         World world = Bukkit.getWorld(Map.getActiveMap().getFileName());
         double x = data.getDouble("arenas." + Map.getActiveMap().getFileName() + ".spawns." + id + ".x");
         double y = data.getDouble("arenas." + Map.getActiveMap().getFileName() + ".spawns." + id + ".y");

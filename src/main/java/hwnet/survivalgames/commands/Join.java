@@ -1,5 +1,6 @@
 package hwnet.survivalgames.commands;
 
+import hwnet.survivalgames.GameState;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -22,14 +23,13 @@ public class Join implements CommandExecutor {
             return true;
         }
         Player p = (Player) sender;
-        SG.spawnFireworks(p.getLocation(), 3);
-        for (Player pl : Bukkit.getOnlinePlayers()) {
-            pl.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 20, 1);
+        if (Gamer.getGamers().size() == SG.maxPlayers) {
+            ChatUtil.sendMessage(p, "Could not join game. Reason: Game is full!");
+            return true;
         }
-        Gamer g = Gamer.getGamer(p);
-        System.out.println("Added " + g.getName() + " to gamers.");
-        ChatUtil.sendMessage(g.getPlayer(), "Joined game.");
-
+        Gamer.getGamer(p);
+        ChatUtil.sendMessage(p, "Joined game.");
+        ChatUtil.sendVoteMenu(p);
         return false;
     }
 

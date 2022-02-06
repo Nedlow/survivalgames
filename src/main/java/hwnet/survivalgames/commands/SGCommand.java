@@ -15,8 +15,6 @@ public class SGCommand implements CommandExecutor {
         sender.sendMessage(ChatUtil.prefix() + SG.pl.getDescription().getName() + " is running version "
                 + SG.pl.getDescription().getVersion() + " by "
                 + SG.pl.getDescription().getAuthors().toString().replace("[", "").replace("]", ""));
-
         return true;
     }
-
 }
