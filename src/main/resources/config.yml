@@ -8,6 +8,7 @@ settings:
   pretime: 3
   # Time until deathmatch(minutes)
   deathmatch: 30
+  district_mode: false
   # team size (0 for no teams)
   teamSize: 2
   # Bungeecord

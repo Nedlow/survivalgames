@@ -1,5 +1,6 @@
 package hwnet.survivalgames.commands;
 
+import hwnet.survivalgames.SG;
 import hwnet.survivalgames.handlers.Gamer;
 import hwnet.survivalgames.handlers.Team;
 import hwnet.survivalgames.utils.ChatUtil;
@@ -23,10 +24,16 @@ public class Volunteer implements CommandExecutor {
 
         Player p = (Player) sender;
 
+        if (!SG.districts_mode) {
+            ChatUtil.sendMessage(p, "District mode is disabled!");
+            return true;
+        }
+
         if (Gamer.getGamer(p.getName()) == null) {
             ChatUtil.sendMessage(p, "You are not playing yet! Use /join to volunteer.");
             return true;
         }
+
 
         if (args.length != 1 && args.length != 2) {
             ChatUtil.sendMessage(p, "Usage: /volunteer <district number|regret>");

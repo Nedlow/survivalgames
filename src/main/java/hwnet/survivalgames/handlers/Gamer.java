@@ -21,6 +21,8 @@ public class Gamer {
     private boolean alive = true;
     private boolean spectator = false;
 
+    private static List<Gamer> gamers = new ArrayList<Gamer>();
+
     private Gamer(Player player) {
         this.name = player.getName();
         this.uuid = player.getUniqueId();
@@ -30,16 +32,14 @@ public class Gamer {
     public static List<Gamer> getRealGamers() {
         List<Gamer> result = new ArrayList<>();
         for (Gamer g : getGamers()) {
-            if (g.isSpectator()) continue;
-            result.add(g);
+            if (!g.isSpectator()) result.add(g);
         }
         return result;
     }
 
     public static void clearRealGamers() {
         for (Gamer g : getGamers()) {
-            if (g.isSpectator() && g.getPlayer().isOnline()) continue;
-            g.remove();
+            if (!g.isSpectator() || !g.getPlayer().isOnline()) g.remove();
         }
     }
 
@@ -75,12 +75,9 @@ public class Gamer {
         gamers.remove(this);
     }
 
-    private static final List<Gamer> gamers = new ArrayList<Gamer>();
-
     public static Gamer getGamer(Player p) {
         for (Gamer g : gamers)
-            if (g.getName().equalsIgnoreCase(p.getName()))
-                return g;
+            if (g.getName().equalsIgnoreCase(p.getName())) return g;
         return new Gamer(p);
     }
 
@@ -90,15 +87,13 @@ public class Gamer {
     @Deprecated
     public static Gamer getGamer(String name) {
         for (Gamer g : gamers)
-            if (g.getName().equalsIgnoreCase(name))
-                return g;
+            if (g.getName().equalsIgnoreCase(name)) return g;
         return null;
     }
 
     public static Gamer getGamer(UUID id) {
         for (Gamer g : gamers)
-            if (g.getPlayer().getUniqueId().equals(id))
-                return g;
+            if (g.getPlayer().getUniqueId().equals(id)) return g;
         return null;
     }
 
@@ -110,8 +105,7 @@ public class Gamer {
         List<Gamer> alive = new ArrayList<Gamer>();
         boolean started = GameState.isState(GameState.INGAME);
         for (Gamer g : gamers)
-            if (started ? g.isAlive() : !g.isSpectator())
-                alive.add(g);
+            if (started ? g.isAlive() : !g.isSpectator()) alive.add(g);
         return alive;
     }
 

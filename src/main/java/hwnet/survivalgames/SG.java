@@ -46,7 +46,6 @@ import hwnet.survivalgames.listeners.StartListener;
 import hwnet.survivalgames.utils.ChatUtil;
 import hwnet.survivalgames.utils.LocUtil;
 import hwnet.survivalgames.utils.ResetMap;
-import org.bukkit.scoreboard.Score;
 
 public class SG extends JavaPlugin {
 
@@ -60,6 +59,8 @@ public class SG extends JavaPlugin {
 
     public static int gamePID, PreGamePID, DMPID, compassPID, fireworksPID;
     public static int pretime, gametime, dmtime, dm, minPlayers, maxPlayers;
+
+    public static boolean districts_mode;
 
     public static SG pl;
 
@@ -87,7 +88,7 @@ public class SG extends JavaPlugin {
         logger = getLogger();
         clogger = getServer().getConsoleSender();
         pl = this;
-        registerDistricts();
+
         registerCommands();
         registerPreEvents();
 
@@ -97,6 +98,9 @@ public class SG extends JavaPlugin {
         Team.setTeamSize(SG.config.getConfigurationSection("settings").getInt("teamSize"));
         ChatUtil.setChatFormat(SG.config.getConfigurationSection("settings.chat").getString("format"));
         maxPlayers = 24;
+
+        districts_mode = config.getBoolean("settings.district_mode");
+        if (districts_mode) registerDistricts();
         if (config.getBoolean("lobby.enabled")) {
             Bukkit.getWorld(config.getString("lobby.world")).setSpawnLocation(LocUtil.getLobbyLocation());
             Bukkit.getWorld(config.getString("lobby.world")).setClearWeatherDuration(3600 * 20);
@@ -328,14 +332,21 @@ public class SG extends JavaPlugin {
 
             @Override
             public void run() {
-                for (Team t : Team.getAliveTeams()) {
-                    for (Player p : t.getAlivePlayers()) {
-                        if (t.getAlivePlayers().size() <= t.getPlayers().size())
-                            p.setCompassTarget(Map.getActiveMap().getCenterLocation());
-                        else
-                            p.setCompassTarget(t.getClosestPlayer(p).getLocation());
+                if (SG.districts_mode) {
+                    for (Team t : Team.getAliveTeams()) {
+                        for (Player p : t.getAlivePlayers()) {
+                            if (t.getAlivePlayers().size() <= t.getPlayers().size())
+                                p.setCompassTarget(Map.getActiveMap().getCenterLocation());
+                            else
+                                p.setCompassTarget(t.getClosestPlayer(p).getLocation());
+                        }
+                    }
+                } else {
+                    for (Gamer g : Gamer.getAliveGamers()) {
+                        g.getPlayer().setCompassTarget(Map.getActiveMap().getCenterLocation());
                     }
                 }
+
             }
         }, 0, 20 * 10);
         gametime = 0;
@@ -474,8 +485,6 @@ public class SG extends JavaPlugin {
                 if (dm == (5 * 60) + 5) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         if (config.getBoolean("bungeecord")) sendToServer(p, config.getString("lobbyserver"));
-                        //else
-                        //p.kickPlayer(ChatColor.translateAlternateColorCodes('&', "&cNoone won!\n&cServer restarting"));
                     }
                     cancelGame();
                 }
@@ -500,15 +509,24 @@ public class SG extends JavaPlugin {
             p.removePotionEffect(pe.getType());
     }
 
-    public static void win(Team team) {
-
-        if (team.getAlivePlayers().size() > 1) {
-            ChatUtil.broadcast("&6&l District " + team.getName() + "&r won the SurvivalGames with multiple players alive!");
-        } else if (team.getAlivePlayers().size() == 1) {
-            ChatUtil.broadcast("&6&l" + team.getAlivePlayers().get(0).getName() + "&r from District " + team.getName() + " won the SurvivalGames!");
-        }
-        for (Player p : team.getAlivePlayers()) {
-            p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6Victory!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
+    public static void win(Team team, Player player) {
+        if (player == null && SG.districts_mode) {
+            if (team.getAlivePlayers().size() > 1) {
+                ChatUtil.broadcast("&6&l District " + team.getName() + "&r won the Survival Games with multiple players alive!");
+            } else if (team.getAlivePlayers().size() == 1) {
+                ChatUtil.broadcast("&6&l" + team.getAlivePlayers().get(0).getName() + "&r from District " + team.getName() + " won the Survival Games!");
+            }
+            for (Player p : team.getAlivePlayers()) {
+                p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6Victory!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
+            }
+        } else if (team == null && !SG.districts_mode) {
+            ChatUtil.broadcast("&6&l" + player.getName() + "&r won the Survival Games!");
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (p == Gamer.getAliveGamers().get(0))
+                    p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6Victory!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
+                else
+                    p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&7" + player.getName() + " won!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
+            }
         }
 
 
@@ -522,7 +540,11 @@ public class SG extends JavaPlugin {
             spawnFireworks(false);
             for (Player pl : Bukkit.getOnlinePlayers()) {
                 //pl.playSound(Map.getActiveMap().getCenterLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 20, 1);
-                pl.playSound(Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation(), Sound.MUSIC_DISC_CAT, 20, 1);
+                if (districts_mode) {
+                    pl.playSound(Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation(), Sound.MUSIC_DISC_CAT, 20, 1);
+                } else {
+                    pl.playSound(Gamer.getAliveGamers().get(0).getPlayer().getLocation(), Sound.MUSIC_DISC_CAT, 20, 1);
+                }
             }
         }
 
@@ -532,9 +554,16 @@ public class SG extends JavaPlugin {
 
             @Override
             public void run() {
-                for (Player p : Team.getAliveTeams().get(0).getAlivePlayers()) {
-                    PointSystem.addPoints(p, 200);
-                    Gamer g = Gamer.getGamer(p);
+                if (districts_mode) {
+                    for (Player p : Team.getAliveTeams().get(0).getAlivePlayers()) {
+                        PointSystem.addPoints(p, 200);
+                        Gamer g = Gamer.getGamer(p);
+                        if (config.getBoolean("mysql.enabled")) g.addWin();
+                    }
+                } else {
+                    Gamer g = Gamer.getAliveGamers().get(0);
+                    PointSystem.addPoints(g.getPlayer(), 200);
+
                     if (config.getBoolean("mysql.enabled")) g.addWin();
                 }
                 cancelGame();
@@ -547,9 +576,13 @@ public class SG extends JavaPlugin {
         for (Player pl : Bukkit.getOnlinePlayers()) {
             if (config.getBoolean("bungeecord")) sendToServer(pl, config.getString("lobbyserver"));
             else {
-                LocUtil.teleportToLobby(pl);
-                clearPlayer(pl);
+                if (!Gamer.getGamer(pl.getUniqueId()).isAlive()) {
+                    Gamer.getGamer(pl.getUniqueId()).setAlive(true);
+                }
                 pl.setGameMode(GameMode.ADVENTURE);
+                clearPlayer(pl);
+                pl.showPlayer(SG.pl, pl);
+                LocUtil.teleportToLobby(pl);
             }
             //pl.kickPlayer(ChatColor.translateAlternateColorCodes('&', "&r&6District &6&l" + Team.getAliveTeams().get(0).getName() + " &r&6won!\n&cServer restarting."));
             // NEW IMPLEMENTATION
@@ -563,7 +596,11 @@ public class SG extends JavaPlugin {
         Bukkit.getScheduler().cancelTask(gamePID);
         Bukkit.getScheduler().cancelTask(compassPID);
         Gamer.clearRealGamers();
-        ScoreboardUtil.resetScoreboard();
+        for (Gamer g : Gamer.getRealGamers()) {
+            ChatUtil.sendMessage(cmd, g.getName());
+        }
+        if (SG.districts_mode)
+            ScoreboardUtil.resetScoreboard();
         Team.clearInfo();
         VoteHandler.clearVotes();
 
@@ -590,6 +627,10 @@ public class SG extends JavaPlugin {
                 Gamer.getGamer(p);
                 ChatUtil.sendMessage(cmd, "Added " + p.getName() + " to gamers");
             }
+        }
+        ChatUtil.sendMessage(cmd, "All gamers: ");
+        for (Gamer g : Gamer.getRealGamers()) {
+            ChatUtil.sendMessage(cmd, g.getName());
         }
 
 
@@ -649,16 +690,28 @@ public class SG extends JavaPlugin {
                 }
             }, 0, 5);
         } else {
-            Location loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation();
+            Location loc = Gamer.getAliveGamers().get(0).getPlayer().getLocation();
             for (int i = 1; i <= 4; i++) {
-                if (i == 1) {
-                    loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(10, 15, 0);
-                } else if (i == 2) {
-                    loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(-10, 15, 0);
-                } else if (i == 3) {
-                    loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(0, 15, 10);
-                } else if (i == 4) {
-                    loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(0, 15, -10);
+                if (districts_mode) {
+                    if (i == 1) {
+                        loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(10, 15, 0);
+                    } else if (i == 2) {
+                        loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(-10, 15, 0);
+                    } else if (i == 3) {
+                        loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(0, 15, 10);
+                    } else if (i == 4) {
+                        loc = Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation().add(0, 15, -10);
+                    }
+                } else {
+                    if (i == 1) {
+                        loc = Gamer.getAliveGamers().get(0).getPlayer().getLocation().add(10, 15, 0);
+                    } else if (i == 2) {
+                        loc = Gamer.getAliveGamers().get(0).getPlayer().getLocation().add(-10, 15, 0);
+                    } else if (i == 3) {
+                        loc = Gamer.getAliveGamers().get(0).getPlayer().getLocation().add(0, 15, 10);
+                    } else if (i == 4) {
+                        loc = Gamer.getAliveGamers().get(0).getPlayer().getLocation().add(0, 15, -10);
+                    }
                 }
                 Firework fw = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK);
                 FireworkMeta fwm = fw.getFireworkMeta();

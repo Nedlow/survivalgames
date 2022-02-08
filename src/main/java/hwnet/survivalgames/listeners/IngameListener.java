@@ -87,13 +87,13 @@ public class IngameListener implements Listener {
 
             if (e.getDamager() instanceof Player) {
                 Player d = (Player) e.getDamager();
-                if (Team.getTeam(p).equals(Team.getTeam(d))) e.setCancelled(true);
+                if (SG.districts_mode)
+                    if (Team.getTeam(p).equals(Team.getTeam(d))) e.setCancelled(true);
             }
             if (p.getHealth() - e.getFinalDamage() < 1) {
                 handleDeath(p);
                 if (e.getDamager() instanceof Player) {
                     Player d = (Player) e.getDamager();
-                    if (Team.getTeam(p).equals(Team.getTeam(d))) e.setCancelled(true);
 
                     // Point System
                     PointSystem.addPoints(p, SG.config.getInt("points.lose"));
@@ -133,25 +133,30 @@ public class IngameListener implements Listener {
         ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/"
                 + Gamer.getGamers().size() + " tributes remain");
 
-        Team t = Team.getTeam(p);
-
-        if (t.getAlivePlayers().size() < 1) {
-            t.setIsAlive(false);
-            List<String> motd = new ArrayList<String>();
-            motd.add("&6Surval Games&7: &cIn Game");
-            motd.add("&b" + Gamer.getAliveGamers().size() + "&7/&b24 tributes left!");
-            ChatUtil.setMOTD(motd);
-            for (Player po : t.getPlayers()) {
-                po.setSpectatorTarget(null);
+        if (SG.districts_mode) {
+            Team t = Team.getTeam(p);
+            if (t.getAlivePlayers().size() < 1) {
+                t.setIsAlive(false);
+                List<String> motd = new ArrayList<String>();
+                motd.add("&6Surval Games&7: &cIn Game");
+                motd.add("&b" + Gamer.getAliveGamers().size() + "&7/&b24 tributes left!");
+                ChatUtil.setMOTD(motd);
+                for (Player po : t.getPlayers()) {
+                    po.setSpectatorTarget(null);
+                }
+                if (Team.getAliveTeams().size() == 1) {
+                    SG.win(Team.getAliveTeams().get(0), null);
+                } else {
+                    ChatUtil.broadcast("District " + t.getName() + " has been eliminated! Only " + Team.getAliveTeams().size() + " left.");
+                }
             }
-            if (Team.getAliveTeams().size() == 1) {
-                SG.win(Team.getAliveTeams().get(0));
-            } else {
-                ChatUtil.broadcast("District " + t.getName() + " has been eliminated! Only " + Team.getAliveTeams().size() + " left.");
+            if (Team.getTeam(p).isAlive()) {
+                p.setSpectatorTarget(Team.getTeam(p).getAlivePlayers().get(0));
             }
-        }
-        if (Team.getTeam(p).isAlive()) {
-            p.setSpectatorTarget(Team.getTeam(p).getAlivePlayers().get(0));
+        } else {
+            if (Gamer.getAliveGamers().size() < 2) {
+                SG.win(null, Gamer.getAliveGamers().get(0).getPlayer());
+            }
         }
     }
 

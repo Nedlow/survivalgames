@@ -89,6 +89,7 @@ public class JoinListener implements Listener {
         int points = PointSystem.getPoints(e.getPlayer());
         e.setMessage(ChatUtil.getFormat().replace("%points", String.valueOf(points)).replace("%name", e.getPlayer().getName()).
                 replace("%msg", e.getMessage()));
+        e.setFormat("");
     }
 
 

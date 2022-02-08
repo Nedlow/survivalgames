@@ -57,19 +57,23 @@ public class Game {
                 GameState.setState(GameState.INGAME);
 
                 ChestHandler.fillAllChests(Map.getActiveMap().getFileName());
-                System.out.println("Filled chests with fun loot!");
+                ChatUtil.sendMessage(SG.clogger, "Filled chests with loot");
 
                 Bukkit.getWorld(Map.getActiveMap().getFileName()).setTime(0);
-
-                for (Gamer gamer : Gamer.getGamers()) {
-                    if (Team.hasTeam(gamer.getPlayer())) continue;
-                    Team.addPlayerToAvailableTeam(gamer.getPlayer());
+                if (SG.districts_mode) {
+                    for (Gamer gamer : Gamer.getGamers()) {
+                        if (Team.hasTeam(gamer.getPlayer())) continue;
+                        Team.addPlayerToAvailableTeam(gamer.getPlayer());
+                    }
+                    for (Team teams : Team.getAllTeams()) {
+                        if (teams.getPlayers().size() < 1) teams.setIsAlive(false);
+                    }
+                    ChatUtil.sendMessage(SG.clogger, Team.getAliveTeams().size() + " districts participating in this game.");
+                } else {
+                    ChatUtil.sendMessage(SG.clogger, Gamer.getAliveGamers().size() + " tributes participating in this game.");
                 }
 
-                for (Team teams : Team.getAllTeams()) {
-                    if (teams.getPlayers().size() < 1) teams.setIsAlive(false);
-                }
-                ChatUtil.sendMessage(SG.clogger, Team.getAliveTeams().size() + " districts participating in this game.");
+
                 int i = 0;
                 Random rand = new Random();
                 ArrayList<Integer> usedSpawns = new ArrayList<>();
@@ -91,7 +95,7 @@ public class Game {
                         ItemStack compass = new ItemStack(Material.COMPASS);
                         ItemMeta meta = compass.getItemMeta();
                         List<String> lore = new ArrayList<String>();
-                        lore.add("Shows the direction of your closest teammate.");
+                        lore.add("Shows the way.");
                         meta.setLore(lore);
                         compass.setItemMeta(meta);
                         p.getInventory().setItem(8, compass);
