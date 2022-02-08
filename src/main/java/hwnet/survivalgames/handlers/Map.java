@@ -44,6 +44,12 @@ public class Map {
         tempId.put(map, id);
     }
 
+    public static void clearInfo() {
+        tempId.clear();
+        voteMaps.clear();
+        setActiveMap(null);
+    }
+
     public static int getTempId(Map map) {
         return tempId.get(map);
     }
@@ -137,5 +143,22 @@ public class Map {
         return new Location(world, x, y, z);
     }
 
-
+    public static void chooseMaps() {
+        Random rand = new Random();
+        if (Map.getAllMaps().size() >= 6) {
+            for (int id = 1; id < 7; id++) {
+                Map map = Map.getAllMaps().get(rand.nextInt(Map.getAllMaps().size()));
+                while (Map.hasTempId(map)) {
+                    map = Map.getAllMaps().get(rand.nextInt(Map.getAllMaps().size()));
+                }
+                Map.setTempId(map, id);
+            }
+        } else {
+            for (int i = 1; i <= Map.getAllMaps().size(); i++) {
+                Map map = Map.getAllMaps().get(i);
+                Map.setTempId(map, i);
+            }
+        }
+        Map.setVoteMaps();
+    }
 }

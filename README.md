@@ -11,7 +11,7 @@ It is firstly made to run only one match per server, and is therefore supposed t
 - Configurable chest contents
 
 
-TODO:
+### TODO:
 - Sponsorship: Let's spectators buy special items for alive players.
 - World Events: Player or location based, eg. zombies or toxic fog.
 

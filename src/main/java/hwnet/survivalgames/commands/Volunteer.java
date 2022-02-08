@@ -1,5 +1,6 @@
 package hwnet.survivalgames.commands;
 
+import hwnet.survivalgames.handlers.Gamer;
 import hwnet.survivalgames.handlers.Team;
 import hwnet.survivalgames.utils.ChatUtil;
 import net.md_5.bungee.api.chat.*;
@@ -21,6 +22,11 @@ public class Volunteer implements CommandExecutor {
         }
 
         Player p = (Player) sender;
+
+        if (Gamer.getGamer(p.getName()) == null) {
+            ChatUtil.sendMessage(p, "You are not playing yet! Use /join to volunteer.");
+            return true;
+        }
 
         if (args.length != 1 && args.length != 2) {
             ChatUtil.sendMessage(p, "Usage: /volunteer <district number|regret>");
@@ -77,7 +83,7 @@ public class Volunteer implements CommandExecutor {
             TextComponent decline = new TextComponent(" [DECLINE] ");
             decline.setColor(net.md_5.bungee.api.ChatColor.RED);
             decline.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/volunteer decline " + p.getName()));
-            accept.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("Click to decline").create()));
+            decline.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("Click to decline").create()));
 
             BaseComponent[] components = new ComponentBuilder(ChatUtil.prefix() + p.getName() + " has volunteered for your team.").create();
             BaseComponent[] clickables = new ComponentBuilder(ChatUtil.prefix()).append(accept).append(decline).create();
@@ -99,7 +105,7 @@ public class Volunteer implements CommandExecutor {
                     return true;
                 }
 
-                if(t.getPlayers().size() == t.getTeamSize()){
+                if (t.getPlayers().size() == t.getTeamSize()) {
 
                 }
 
@@ -123,7 +129,6 @@ public class Volunteer implements CommandExecutor {
                 t.removeJoinRequest(volunt);
                 return true;
             }
-
         }
         return false;
     }

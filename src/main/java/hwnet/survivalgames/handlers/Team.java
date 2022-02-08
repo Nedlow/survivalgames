@@ -18,7 +18,7 @@ public class Team {
     private static List<Team> teams = new ArrayList<Team>();
     private static HashMap<String, Team> pTeams = new HashMap<String, Team>();
     private static HashMap<Team, Integer> tempId = new HashMap<Team, Integer>();
-    private static List<String> playerRequests = new ArrayList<>();
+    private List<String> playerRequests = new ArrayList<>();
 
     private String name;
     private static int teamSize;
@@ -30,6 +30,11 @@ public class Team {
         this.isAlive = true;
         teams.add(this);
     }
+
+    public static void clearInfo() {
+        pTeams.clear();
+    }
+
 
     public String getName() {
         return name;
@@ -76,6 +81,7 @@ public class Team {
         if (!hasTeam(p))
             return false;
         pTeams.remove(p.getName());
+        SG.SBU.removeFromTeam(p, this.getName());
         return true;
     }
 

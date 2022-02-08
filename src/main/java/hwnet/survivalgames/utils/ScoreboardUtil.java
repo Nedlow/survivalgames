@@ -1,5 +1,6 @@
 package hwnet.survivalgames.utils;
 
+import hwnet.survivalgames.SG;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -34,6 +35,12 @@ public class ScoreboardUtil {
 
     public void setScoreboard(Player p) {
         p.setScoreboard(board);
+    }
+
+    public static void resetScoreboard() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            SG.SBU.removeFromTeam(p, hwnet.survivalgames.handlers.Team.getTeam(p).getName());
+        }
     }
 
 }

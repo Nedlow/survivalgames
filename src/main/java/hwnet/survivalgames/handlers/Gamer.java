@@ -19,11 +19,28 @@ public class Gamer {
     private String name;
     private UUID uuid;
     private boolean alive = true;
+    private boolean spectator = false;
 
     private Gamer(Player player) {
         this.name = player.getName();
         this.uuid = player.getUniqueId();
         gamers.add(this);
+    }
+
+    public static List<Gamer> getRealGamers() {
+        List<Gamer> result = new ArrayList<>();
+        for (Gamer g : getGamers()) {
+            if (g.isSpectator()) continue;
+            result.add(g);
+        }
+        return result;
+    }
+
+    public static void clearRealGamers() {
+        for (Gamer g : getGamers()) {
+            if (g.isSpectator() && g.getPlayer().isOnline()) continue;
+            g.remove();
+        }
     }
 
     public Player getPlayer() {
@@ -44,6 +61,14 @@ public class Gamer {
 
     public void setAlive(boolean alive) {
         this.alive = alive;
+    }
+
+    public boolean isSpectator() {
+        return spectator;
+    }
+
+    public void setSpectator(boolean spectate) {
+        this.spectator = spectate;
     }
 
     public void remove() {
@@ -85,7 +110,7 @@ public class Gamer {
         List<Gamer> alive = new ArrayList<Gamer>();
         boolean started = GameState.isState(GameState.INGAME);
         for (Gamer g : gamers)
-            if (started ? g.isAlive() : g.getPlayer().getGameMode() == GameMode.SURVIVAL)
+            if (started ? g.isAlive() : !g.isSpectator())
                 alive.add(g);
         return alive;
     }

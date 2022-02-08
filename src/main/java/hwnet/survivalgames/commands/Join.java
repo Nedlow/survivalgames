@@ -27,7 +27,7 @@ public class Join implements CommandExecutor {
             ChatUtil.sendMessage(p, "Could not join game. Reason: Game is full!");
             return true;
         }
-        Gamer.getGamer(p);
+        Gamer.getGamer(p).setSpectator(false);
         ChatUtil.sendMessage(p, "Joined game.");
         ChatUtil.sendVoteMenu(p);
         return false;

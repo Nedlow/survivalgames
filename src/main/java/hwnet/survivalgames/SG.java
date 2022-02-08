@@ -46,7 +46,7 @@ import hwnet.survivalgames.listeners.StartListener;
 import hwnet.survivalgames.utils.ChatUtil;
 import hwnet.survivalgames.utils.LocUtil;
 import hwnet.survivalgames.utils.ResetMap;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.Score;
 
 public class SG extends JavaPlugin {
 
@@ -68,14 +68,6 @@ public class SG extends JavaPlugin {
 
     public static ScoreboardUtil SBU;
 
-    /*
-
-    Github collaboration test
-
-
-     */
-
-
     @Override
     public void onLoad() {
         configs();
@@ -85,7 +77,7 @@ public class SG extends JavaPlugin {
         if (lastmap == null || lastmap.equalsIgnoreCase("null")) {
             cmd.sendMessage("No maps played yet.");
         } else {
-            cmd.sendMessage(ChatColor.translateAlternateColorCodes('&', "&eRolling back last map: " + lastmap));
+            ChatUtil.sendMessage(cmd, "Rolling back map " + lastmap);
             ResetMap.rollback(lastmap, this);
         }
     }
@@ -119,8 +111,7 @@ public class SG extends JavaPlugin {
         data = SettingsManager.getInstance().getData();
 
         ChatUtil.sendMessage(clogger, ChatColor.GOLD + "==================================");
-        ChatUtil.sendMessage(clogger, ChatColor.AQUA + "Enabling SurvivalGames by "
-                + getDescription().getAuthors().toString().replace("[", "").replace("]", ""));
+        ChatUtil.sendMessage(clogger, ChatColor.AQUA + "Enabling SurvivalGames by " + getDescription().getAuthors().toString().replace("[", "").replace("]", ""));
         ChatUtil.sendMessage(clogger, ChatColor.GOLD + "==================================");
 
         if (data.getConfigurationSection("arenas") == null) {
@@ -131,28 +122,11 @@ public class SG extends JavaPlugin {
                 Map map = new Map(data.getString("arenas." + maps + ".name"), maps);
                 ChatUtil.sendMessage(cmd, "Loaded " + map.getMapName());
                 ResetMap.createBackup(map, this);
-                WorldCreator worldc = new WorldCreator(map.getFileName());
-                World world = worldc.createWorld();
+                WorldCreator world = new WorldCreator(map.getFileName());
+                world.createWorld();
             }
-
             ChatUtil.sendMessage(cmd, "A total of " + Map.getAllMaps().size() + " maps.");
-            Random rand = new Random();
-
-            if (Map.getAllMaps().size() >= 6) {
-                for (int id = 1; id < 7; id++) {
-                    Map map = Map.getAllMaps().get(rand.nextInt(Map.getAllMaps().size()));
-                    while (Map.hasTempId(map)) {
-                        map = Map.getAllMaps().get(rand.nextInt(Map.getAllMaps().size()));
-                    }
-                    Map.setTempId(map, id);
-                }
-            } else {
-                for (int i = 1; i <= Map.getAllMaps().size(); i++) {
-                    Map map = Map.getAllMaps().get(i);
-                    Map.setTempId(map, i);
-                }
-            }
-            Map.setVoteMaps();
+            Map.chooseMaps();
         }
 
         List<String> motd = new ArrayList<String>();
@@ -171,8 +145,7 @@ public class SG extends JavaPlugin {
     public void onDisable() {
         if (config.getBoolean("mysql.enabled")) {
             try {
-                if (connection != null && connection.isClosed())
-                    connection.close();
+                if (connection != null && connection.isClosed()) connection.close();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -208,10 +181,7 @@ public class SG extends JavaPlugin {
     // MYSQL
     public synchronized static void openConnection() {
         try {
-            connection = DriverManager.getConnection(
-                    "jdbc:mysql://" + config.getString("mysql.host") + ":" + config.getString("mysql.port") + "/"
-                            + config.getString("mysql.database"),
-                    config.getString("mysql.username"), config.getString("mysql.password"));
+            connection = DriverManager.getConnection("jdbc:mysql://" + config.getString("mysql.host") + ":" + config.getString("mysql.port") + "/" + config.getString("mysql.database"), config.getString("mysql.username"), config.getString("mysql.password"));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -270,18 +240,13 @@ public class SG extends JavaPlugin {
             getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
     }
 
-    public static void registerGameEvents() {
-        PluginManager pm = Bukkit.getPluginManager();
-        pm.registerEvents(new IngameListener(), SG.pl);
-    }
 
-    private static Listener preListener;
-    private static Listener startListener;
-    private static Listener graceListener;
+    private static Listener preListener, startListener, graceListener, ingameListener;
 
-    private void registerPreEvents() {
+
+    public static void registerPreEvents() {
         preListener = new JoinListener();
-        Bukkit.getPluginManager().registerEvents(preListener, this);
+        Bukkit.getPluginManager().registerEvents(preListener, SG.pl);
     }
 
     public static void unRegisterPreEvents() {
@@ -304,6 +269,15 @@ public class SG extends JavaPlugin {
 
     public static void unregisterGraceEvents() {
         HandlerList.unregisterAll(graceListener);
+    }
+
+    public static void registerGameEvents() {
+        ingameListener = new IngameListener();
+        Bukkit.getPluginManager().registerEvents(ingameListener, SG.pl);
+    }
+
+    public static void unregisterGameEvents() {
+        HandlerList.unregisterAll(ingameListener);
     }
 
     private void configs() {
@@ -332,8 +306,7 @@ public class SG extends JavaPlugin {
                     } else if (pretime > 60) {
                         ChatUtil.broadcast("Game starting in " + pretime / 60 + " minutes.");
                     }
-                    ChatUtil.broadcast(ChatColor.AQUA + "" + Gamer.getGamers().size() + "/24" + ChatColor.GREEN
-                            + " tributes waiting to play.");
+                    ChatUtil.broadcast(ChatColor.AQUA + "" + Gamer.getGamers().size() + "/24" + ChatColor.GREEN + " tributes waiting to play.");
                 }
 
 
@@ -351,22 +324,21 @@ public class SG extends JavaPlugin {
     public static void startGameTimer() {
 
         compassPID = Bukkit.getScheduler().scheduleSyncRepeatingTask(SG.pl, new Runnable() {
-            int countdown = 10;
-            int dmcountdown = 10;
-
             World w = Map.getActiveMap().getWorld();
 
             @Override
             public void run() {
                 for (Team t : Team.getAliveTeams()) {
                     for (Player p : t.getAlivePlayers()) {
-                        p.setCompassTarget(t.getClosestPlayer(p).getLocation());
+                        if (t.getAlivePlayers().size() <= t.getPlayers().size())
+                            p.setCompassTarget(Map.getActiveMap().getCenterLocation());
+                        else
+                            p.setCompassTarget(t.getClosestPlayer(p).getLocation());
                     }
                 }
             }
-
         }, 0, 20 * 10);
-
+        gametime = 0;
         gamePID = Bukkit.getScheduler().scheduleSyncRepeatingTask(SG.pl, new Runnable() {
             int countdown = 10;
             int dmcountdown = 10;
@@ -385,8 +357,9 @@ public class SG extends JavaPlugin {
                 }
                 if (gametime == 16) {
                     unregisterStartEvents();
-                    registerGameEvents();
                     registerGraceEvents();
+                    registerGameEvents();
+
                     for (Gamer gl : Gamer.getGamers()) {
                         gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 20, 1);
                         gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&bRun!"), ChatColor.translateAlternateColorCodes('&', "&eGrace period lasts for 5 seconds."), 5, 10 * 3, 10);
@@ -421,6 +394,7 @@ public class SG extends JavaPlugin {
                     w.setClearWeatherDuration(3600);
                     w.setTime(11000);
                     ChatUtil.broadcast("&cTeleporting players to deathmatch. Waiting for players to load world.");
+                    unregisterGameEvents();
                     registerStartEvents();
                     ChestHandler.fillAllChests(Map.getActiveMap().getFileName());
                     WorldBorder border = w.getWorldBorder();
@@ -463,6 +437,7 @@ public class SG extends JavaPlugin {
 
     private static void Deathmatch() {
         unregisterStartEvents();
+        registerGraceEvents();
         registerGameEvents();
 
         for (Gamer gl : Gamer.getGamers()) {
@@ -498,13 +473,11 @@ public class SG extends JavaPlugin {
                 }
                 if (dm == (5 * 60) + 5) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        if (config.getBoolean("bungeecord"))
-                            sendToServer(p, config.getString("lobbyserver"));
-                        else
-                            p.kickPlayer(
-                                    ChatColor.translateAlternateColorCodes('&', "&cNoone won!\n&cServer restarting"));
+                        if (config.getBoolean("bungeecord")) sendToServer(p, config.getString("lobbyserver"));
+                        //else
+                        //p.kickPlayer(ChatColor.translateAlternateColorCodes('&', "&cNoone won!\n&cServer restarting"));
                     }
-                    Bukkit.getServer().shutdown();
+                    cancelGame();
                 }
                 dm++;
             }
@@ -535,20 +508,26 @@ public class SG extends JavaPlugin {
             ChatUtil.broadcast("&6&l" + team.getAlivePlayers().get(0).getName() + "&r from District " + team.getName() + " won the SurvivalGames!");
         }
         for (Player p : team.getAlivePlayers()) {
-            p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6Victory!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 5, 10 * 5, 20);
+            p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6Victory!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
         }
 
 
         if (GameState.getState() == GameState.ENDGAME) {
             spawnFireworks(true);
+            for (Player pl : Bukkit.getOnlinePlayers()) {
+                //pl.playSound(Map.getActiveMap().getCenterLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 20, 1);
+                pl.playSound(Map.getActiveMap().getCenterLocation(), Sound.MUSIC_DISC_CAT, 20, 1);
+            }
         } else {
             spawnFireworks(false);
+            for (Player pl : Bukkit.getOnlinePlayers()) {
+                //pl.playSound(Map.getActiveMap().getCenterLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 20, 1);
+                pl.playSound(Team.getAliveTeams().get(0).getAlivePlayers().get(0).getLocation(), Sound.MUSIC_DISC_CAT, 20, 1);
+            }
         }
 
-        for (Player pl : Bukkit.getOnlinePlayers()) {
-            //pl.playSound(Map.getActiveMap().getCenterLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 20, 1);
-            pl.playSound(Map.getActiveMap().getCenterLocation(), Sound.MUSIC_DISC_CAT, 20, 1);
-        }
+        ChatUtil.broadcast("Teleporting to lobby in 10 seconds...");
+
         Bukkit.getScheduler().scheduleSyncDelayedTask(SG.pl, new Runnable() {
 
             @Override
@@ -556,19 +535,75 @@ public class SG extends JavaPlugin {
                 for (Player p : Team.getAliveTeams().get(0).getAlivePlayers()) {
                     PointSystem.addPoints(p, 200);
                     Gamer g = Gamer.getGamer(p);
-                    if (config.getBoolean("mysql.enabled"))
-                        g.addWin();
+                    if (config.getBoolean("mysql.enabled")) g.addWin();
                 }
-                for (Player pl : Bukkit.getOnlinePlayers()) {
-                    if (config.getBoolean("bungeecord"))
-                        sendToServer(pl, config.getString("lobbyserver"));
-                    else
-                        pl.kickPlayer(ChatColor.translateAlternateColorCodes('&',
-                                "&r&6District &6&l" + Team.getAliveTeams().get(0).getName() + " &r&6won!\n&cServer restarting."));
-                }
-                Bukkit.getServer().shutdown();
+                cancelGame();
             }
-        }, 20L * 20);
+        }, 20L * 10);
+    }
+
+
+    private static void cancelGame() {
+        for (Player pl : Bukkit.getOnlinePlayers()) {
+            if (config.getBoolean("bungeecord")) sendToServer(pl, config.getString("lobbyserver"));
+            else {
+                LocUtil.teleportToLobby(pl);
+                clearPlayer(pl);
+                pl.setGameMode(GameMode.ADVENTURE);
+            }
+            //pl.kickPlayer(ChatColor.translateAlternateColorCodes('&', "&r&6District &6&l" + Team.getAliveTeams().get(0).getName() + " &r&6won!\n&cServer restarting."));
+            // NEW IMPLEMENTATION
+
+        }
+
+        // CLEAR ALL DATA (VOTES, RANDOM MAP IDS, GAMERS '
+        // (need to find the logic here, so we know who is a gamer and who is spectator without it being removed with the clearing)
+        // Currently clears gamers that are NOT spectators from the start. Dead players will be cleared.
+        Bukkit.getScheduler().cancelTask(DMPID);
+        Bukkit.getScheduler().cancelTask(gamePID);
+        Bukkit.getScheduler().cancelTask(compassPID);
+        Gamer.clearRealGamers();
+        ScoreboardUtil.resetScoreboard();
+        Team.clearInfo();
+        VoteHandler.clearVotes();
+
+        // Reset config information
+        minPlayers = SG.pl.getConfig().getConfigurationSection("settings").getInt("settings.");
+        Team.setTeamSize(SG.config.getConfigurationSection("settings").getInt("teamSize"));
+        ChatUtil.setChatFormat(SG.config.getConfigurationSection("settings.chat").getString("format"));
+
+
+        // UNREGISTER AND REGISTER CORRECT LISTENERS (registerPreEvents)
+        unregisterGameEvents();
+        registerPreEvents();
+
+        // UNLOAD WORLD AND ROLLBACK
+        ChatUtil.sendMessage(cmd, "Rolling back map " + Map.getActiveMap().getMapName());
+        ResetMap.handleReset(SG.pl);
+        // Clear Map info
+        Map.clearInfo();
+        // Choose 6 random maps for vote cycle
+        Map.chooseMaps();
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.isOp()) {
+                Gamer.getGamer(p);
+                ChatUtil.sendMessage(cmd, "Added " + p.getName() + " to gamers");
+            }
+        }
+
+
+        SG.startPreGameCountdown();
+
+
+        // SET MOTD
+        List<String> motd = new ArrayList<String>();
+        motd.add("&6SurvalGames&7: &aIn Lobby");
+        motd.add("&a" + (24 - Gamer.getAliveGamers().size()) + " spots left!");
+        ChatUtil.setMOTD(motd);
+
+        // Stop server (OLD IMPLEMENTATION)
+        // Bukkit.shutdown();
     }
 
     public static void spawnFireworks(boolean dm) {
@@ -600,8 +635,7 @@ public class SG extends JavaPlugin {
                         color = Color.AQUA;
                     }
 
-                    fwm.addEffect(FireworkEffect.builder().with(FireworkEffect.Type.BALL_LARGE).withColor(color).flicker(true)
-                            .build());
+                    fwm.addEffect(FireworkEffect.builder().with(FireworkEffect.Type.BALL_LARGE).withColor(color).flicker(true).build());
                     fwm.setPower(3);
                     fw.setFireworkMeta(fwm);
                     fw.detonate();
@@ -640,40 +674,11 @@ public class SG extends JavaPlugin {
                     color = Color.AQUA;
                 }
 
-                fwm.addEffect(FireworkEffect.builder().with(FireworkEffect.Type.BALL_LARGE).withColor(color).flicker(true)
-                        .build());
+                fwm.addEffect(FireworkEffect.builder().with(FireworkEffect.Type.BALL_LARGE).withColor(color).flicker(true).build());
                 fwm.setPower(3);
                 fw.setFireworkMeta(fwm);
                 fw.detonate();
             }
         }
-        /*
-
-        for (Location loc : Map.getActiveMap().getSpawns()) {
-            Firework fw = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK);
-            FireworkMeta fwm = fw.getFireworkMeta();
-
-            fwm.setPower(2);
-            Color color = Color.RED;
-            if (i == 1) {
-                color = Color.LIME;
-            } else if (i == 2) {
-                color = Color.MAROON;
-            } else if (i == 3) {
-                color = Color.YELLOW;
-            } else if (i == 4) {
-                color = Color.AQUA;
-            }
-
-
-            fwm.addEffect(FireworkEffect.builder().with(FireworkEffect.Type.BALL_LARGE).withColor(color).flicker(true)
-                    .build());
-            fwm.setPower(2);
-            fw.setFireworkMeta(fwm);
-            fw.detonate();
-            if (i == 4) i = 1;
-            else i++;
-        }
-        */
     }
 }

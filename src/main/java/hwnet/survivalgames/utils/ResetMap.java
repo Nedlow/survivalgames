@@ -8,11 +8,24 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import hwnet.survivalgames.SG;
+import org.bukkit.Bukkit;
+import org.bukkit.WorldCreator;
 import org.bukkit.plugin.Plugin;
 
 import hwnet.survivalgames.handlers.Map;
 
 public class ResetMap {
+
+
+    public static void handleReset(Plugin pl) {
+        // Unload world before deleting
+        String mapName = Map.getActiveMap().getFileName();
+        Bukkit.unloadWorld(mapName, false);
+        rollback(mapName, pl);
+        WorldCreator world = new WorldCreator(mapName);
+        world.createWorld();
+    }
+
 
     public static void rollback(String filename, Plugin pl) {
         File delFile = new File(filename);

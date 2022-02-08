@@ -8,6 +8,7 @@ import static org.bukkit.ChatColor.RESET;
 import hwnet.survivalgames.SG;
 import hwnet.survivalgames.handlers.Map;
 import hwnet.survivalgames.handlers.VoteHandler;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -55,8 +56,8 @@ public class ChatUtil {
 
 
     public static void broadcast(String msg) {
-        for (Gamer g : Gamer.getGamers()) {
-            g.getPlayer().sendMessage(prefix() + ChatColor.translateAlternateColorCodes('&', msg));
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.sendMessage(prefix() + ChatColor.translateAlternateColorCodes('&', msg));
         }
     }
 

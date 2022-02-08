@@ -54,4 +54,8 @@ public class VoteHandler {
         }
         return mapmost;
     }
+
+    public static void clearVotes() {
+        votes.clear();
+    }
 }

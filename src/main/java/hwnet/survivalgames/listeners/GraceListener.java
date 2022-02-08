@@ -14,8 +14,8 @@ public class GraceListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
-    public void onDama(EntityDamageEvent e) {
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onDamage(EntityDamageEvent e) {
         if (e.getEntity() instanceof Player) {
             e.setCancelled(true);
         }
