@@ -18,7 +18,7 @@ public class Gamer {
 
     private String name;
     private UUID uuid;
-    private boolean alive = false;
+    private boolean alive = true;
 
     private Gamer(Player player) {
         this.name = player.getName();

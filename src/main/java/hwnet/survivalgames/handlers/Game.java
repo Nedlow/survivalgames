@@ -74,26 +74,32 @@ public class Game {
                 Random rand = new Random();
                 ArrayList<Integer> usedSpawns = new ArrayList<>();
                 for (Gamer pla : Gamer.getGamers()) {
-                    pla.setAlive(true);
-                    i = rand.nextInt(24);
-                    while (usedSpawns.contains(i)) {
-                        i = rand.nextInt(24);
-                    }
-                    ChatUtil.sendMessage(SG.clogger, "Spawn assigned to " + pla.getName() + ": " + i);
-                    usedSpawns.add(i);
+
                     Player p = pla.getPlayer();
+
                     SG.clearPlayer(p);
-                    ItemStack compass = new ItemStack(Material.COMPASS);
-                    ItemMeta meta = compass.getItemMeta();
-                    List<String> lore = new ArrayList<String>();
-                    lore.add("Shows the direction of your closest teammate.");
-                    meta.setLore(lore);
-                    compass.setItemMeta(meta);
-                    p.getInventory().setItem(8, compass);
-                    participants.add(p);
-                    LocUtil.teleportToGame(p, i);
-                    p.setGameMode(GameMode.SURVIVAL);
-                    i++;
+                    if (!pla.isAlive()) {
+                        p.teleport(Map.getActiveMap().getCenterLocation());
+                        p.setGameMode(GameMode.SPECTATOR);
+                    } else {
+                        i = rand.nextInt(24);
+                        while (usedSpawns.contains(i)) {
+                            i = rand.nextInt(24);
+                        }
+                        ChatUtil.sendMessage(SG.clogger, "Spawn assigned to " + pla.getName() + ": " + i);
+                        usedSpawns.add(i);
+                        ItemStack compass = new ItemStack(Material.COMPASS);
+                        ItemMeta meta = compass.getItemMeta();
+                        List<String> lore = new ArrayList<String>();
+                        lore.add("Shows the direction of your closest teammate.");
+                        meta.setLore(lore);
+                        compass.setItemMeta(meta);
+                        p.getInventory().setItem(8, compass);
+                        participants.add(p);
+                        LocUtil.teleportToGame(p, i);
+                        p.setGameMode(GameMode.SURVIVAL);
+                        i++;
+                    }
                 }
                 SG.startGameTimer();
                 /*
@@ -102,16 +108,17 @@ public class Game {
                     ChatUtil.sendMessage(SG.clogger, a.getName() + ": " + a.getPlayers().toString());
                 }
                  */
+
+                List<String> motd = new ArrayList<String>();
+                motd.add("&6Surval Games&7: &cIn Game");
+                motd.add("&b" + Gamer.getAliveGamers().size() + "&7/&b24 tributes left!");
+                ChatUtil.setMOTD(motd);
+
                 Bukkit.getPluginManager().callEvent(new GameStartEvent(participants));
             }
         } else {
             Bukkit.getScheduler().cancelTask(SG.PreGamePID);
-            ChatUtil.broadcast("Not enough players to start game!");
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            ChatUtil.broadcast("Not enough tributes to start game!");
             SG.startPreGameCountdown();
         }
     }

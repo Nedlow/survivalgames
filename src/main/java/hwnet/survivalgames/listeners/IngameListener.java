@@ -1,6 +1,8 @@
 package hwnet.survivalgames.listeners;
 
+import hwnet.survivalgames.handlers.Map;
 import hwnet.survivalgames.handlers.Team;
+import hwnet.survivalgames.utils.LocUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -23,7 +25,13 @@ import hwnet.survivalgames.handlers.PointSystem;
 import hwnet.survivalgames.utils.ChatUtil;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerChatEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.event.weather.WeatherChangeEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class IngameListener implements Listener {
 
@@ -31,6 +39,27 @@ public class IngameListener implements Listener {
     public void onCreatureSpawn(CreatureSpawnEvent event) {
         event.setCancelled(true);
     }
+
+    @EventHandler
+    public void onMOTD(ServerListPingEvent e) {
+        e.setMotd(ChatUtil.getMOTD());
+    }
+
+    @EventHandler
+    public void onJoinPre(PlayerLoginEvent event) {
+        if (event.getResult() == PlayerLoginEvent.Result.KICK_FULL)
+            event.setResult(PlayerLoginEvent.Result.ALLOWED);
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        Player p = e.getPlayer();
+        Gamer g = Gamer.getGamer(p);
+        g.setAlive(false);
+        p.setGameMode(GameMode.SPECTATOR);
+        p.teleport(Map.getActiveMap().getCenterLocation());
+    }
+
 
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
@@ -53,15 +82,15 @@ public class IngameListener implements Listener {
 
     @EventHandler
     public void onDeath2(EntityDamageByEntityEvent e) {
-
         if (e.getEntity() instanceof Player) {
             Player p = (Player) e.getEntity();
-            if (p.getHealth() - e.getFinalDamage() < 1) {
-                p.setHealth(20);
-                p.setGameMode(GameMode.SPECTATOR);
-                Gamer g = Gamer.getGamer(p);
-                g.setAlive(false);
 
+            if (e.getDamager() instanceof Player) {
+                Player d = (Player) e.getDamager();
+                if (Team.getTeam(p).equals(Team.getTeam(d))) e.setCancelled(true);
+            }
+            if (p.getHealth() - e.getFinalDamage() < 1) {
+                handleDeath(p);
                 if (e.getDamager() instanceof Player) {
                     Player d = (Player) e.getDamager();
                     if (Team.getTeam(p).equals(Team.getTeam(d))) e.setCancelled(true);
@@ -74,34 +103,6 @@ public class IngameListener implements Listener {
                     if (SG.config.getBoolean("mysql.enabled"))
                         Gamer.getGamer(d).addKill();
                 }
-
-                for (Player pl : Bukkit.getOnlinePlayers()) {
-                    pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 20, 1);
-                    pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 20, 1);
-                }
-                ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/"
-                        + Gamer.getGamers().size() + " tributes remain");
-
-                Team t = Team.getTeam(p);
-
-                if (t.getAlivePlayers().size() < 1) {
-                    t.setIsAlive(false);
-                    for (Player po : t.getPlayers()) {
-                        po.setSpectatorTarget(null);
-                    }
-                    if (Team.getAliveTeams().size() == 1) {
-                        SG.win(Team.getAliveTeams().get(0));
-                    } else {
-                        ChatUtil.broadcast("District " + t.getName() + " has been eliminated! Only " + Team.getAliveTeams().size() + " left.");
-                    }
-                }
-
-
-                if (Team.getTeam(p).isAlive()) {
-                    p.setSpectatorTarget(Team.getTeam(p).getAlivePlayers().get(0));
-                }
-
-
             }
         }
     }
@@ -111,144 +112,54 @@ public class IngameListener implements Listener {
         if (e.getEntity() instanceof Player) {
             Player p = (Player) e.getEntity();
             if (p.getHealth() - e.getFinalDamage() < 1) {
-                p.setHealth(20);
-                p.setGameMode(GameMode.SPECTATOR);
-                Gamer g = Gamer.getGamer(p);
-                g.setAlive(false);
-
-                for (Player pl : Bukkit.getOnlinePlayers()) {
-                    pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 20, 1);
-                    pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 20, 1);
-                }
-                ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/"
-                        + Gamer.getGamers().size() + " tributes remain");
-
-                Team t = Team.getTeam(p);
-
-                if (t.getAlivePlayers().size() < 1) {
-                    t.setIsAlive(false);
-                    for (Player po : t.getPlayers()) {
-                        po.setSpectatorTarget(null);
-                    }
-                    if (Team.getAliveTeams().size() == 1) {
-                        SG.win(Team.getAliveTeams().get(0));
-                    } else {
-                        ChatUtil.broadcast("District " + t.getName() + " has been eliminated! Only " + Team.getAliveTeams().size() + " left.");
-                    }
-                }
-
-                if (Team.getTeam(p).isAlive()) {
-                    p.setSpectatorTarget(Team.getTeam(p).getAlivePlayers().get(0));
-                }
-
-
+                e.setCancelled(true);
+                handleDeath(p);
             }
         }
     }
 
-    @EventHandler
-    public void onBreak(BlockBreakEvent event) {
-        if
-        (event.getPlayer().getGameMode() != GameMode.SURVIVAL) return;
-        if
-        (event.getBlock().getType() == Material.LEGACY_LEAVES)
-            event.setCancelled(true);
-        if (event.getBlock().getType() == Material.GLASS)
-            event.setCancelled(true);
-        if (event.getBlock().getType() == Material.LEGACY_THIN_GLASS)
-            event.setCancelled(true);
-    }
+    private void handleDeath(Player p) {
+        if (!Gamer.getGamer(p.getUniqueId()).isAlive()) return;
 
-        /*
-
-
-        if (e.getEntity() instanceof Player && e.getDamager() instanceof Player) {
-            Player p = (Player) e.getEntity();
-            Player d = (Player) e.getDamager();
-
-            if (Team.getTeam(p).equals(Team.getTeam(d))) e.setCancelled(true);
-
-
-            if (p.getHealth() - e.getFinalDamage() < 1) {
-                p.setHealth(20);
-                p.setGameMode(GameMode.SPECTATOR);
-                Gamer g = Gamer.getGamer(p);
-                g.setAlive(false);
-
-
-                //ChatUtil.broadcast(p.getName() + " was killed by " + d.getName());
-
-
-                for (Player pl : Bukkit.getOnlinePlayers()) {
-                    pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 20, 1);
-                    pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 20, 1);
-                }
-                ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/"
-                        + Gamer.getGamers().size() + " tributes remain");
-
-                Team t = Team.getTeam(p);
-
-                if (Team.getAliveTeams().size() == 1) {
-                    SG.win(Team.getAliveTeams().get(0));
-                } else {
-                    if (t.getAlivePlayers().size() < 1) {
-                        t.setIsAlive(false);
-                        for (Player po : t.getPlayers()) {
-                            po.setSpectatorTarget(null);
-                        }
-                        ChatUtil.broadcast("District " + t.getName() + " has been eliminated! Only " + Team.getAliveTeams().size() + " left.");
-                    }
-                }
-                if (Team.getTeam(p).isAlive()) {
-                    p.setSpectatorTarget(Team.getTeam(p).getAlivePlayers().get(0));
-                }
-                PointSystem.addPoints(p, SG.config.getInt("points.lose"));
-                PointSystem.addPoints(d, SG.config.getInt("points.kill"));
-                Bukkit.getPluginManager().callEvent(new GamerKillEvent(p, d));
-                if (SG.config.getBoolean("mysql.enabled"))
-                    Gamer.getGamer(d).addKill();
-            }
-        } */
-
-
-    /* Death event not working, implementing more checks in EntityDamageEntityEvent
-    @EventHandler
-    public void onDeath(PlayerDeathEvent e) {
-        Player p = e.getEntity();
-        p.setBedSpawnLocation(p.getLocation());
+        p.setHealth(20);
         p.setGameMode(GameMode.SPECTATOR);
         Gamer g = Gamer.getGamer(p);
         g.setAlive(false);
-        p.setHealth(20);
 
         for (Player pl : Bukkit.getOnlinePlayers()) {
             pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 20, 1);
             pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 20, 1);
         }
-        ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/" + Gamer.getGamers().size()
-                + " tributes remain");
+        ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/"
+                + Gamer.getGamers().size() + " tributes remain");
+
         Team t = Team.getTeam(p);
+
         if (t.getAlivePlayers().size() < 1) {
             t.setIsAlive(false);
-            ChatUtil.broadcast("District " + t.getName() + " has been eliminated! Only " + Team.getAliveTeams().size() + " left.");
+            List<String> motd = new ArrayList<String>();
+            motd.add("&6Surval Games&7: &cIn Game");
+            motd.add("&b" + Gamer.getAliveGamers().size() + "&7/&b24 tributes left!");
+            ChatUtil.setMOTD(motd);
+            for (Player po : t.getPlayers()) {
+                po.setSpectatorTarget(null);
+            }
+            if (Team.getAliveTeams().size() == 1) {
+                SG.win(Team.getAliveTeams().get(0));
+            } else {
+                ChatUtil.broadcast("District " + t.getName() + " has been eliminated! Only " + Team.getAliveTeams().size() + " left.");
+            }
         }
-
-        if (Team.getAliveTeams().size() == 1) {
-            SG.win(Team.getAliveTeams().get(0));
-        }
-
         if (Team.getTeam(p).isAlive()) {
             p.setSpectatorTarget(Team.getTeam(p).getAlivePlayers().get(0));
         }
-
-        PointSystem.addPoints(p, 50);
-        Bukkit.getPluginManager().callEvent(new GamerDeathEvent(p));
-        if (SG.config.getBoolean("mysql.enabled")) {
-            if (SG.playerDataContains(p.getUniqueId().toString())) {
-                g.addDeath();
-            }
-        }
-        PointSystem.save(p);
     }
-*/
+
+    @EventHandler
+    public void onBreak(BlockBreakEvent event) {
+        if (event.getBlock().getType() == Material.GLASS)
+            event.setCancelled(true);
+
+    }
+
 }

@@ -14,12 +14,25 @@ import org.bukkit.entity.Player;
 
 import hwnet.survivalgames.handlers.Gamer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class ChatUtil {
 
     private static String prefix = DARK_GRAY + "[" + RED + "SG" + DARK_GRAY + "] ";
 
-    private static String chatFormat;
+    private static String chatFormat, MOTD;
+
+
+    public static String getMOTD() {
+        return MOTD;
+    }
+
+    public static void setMOTD(List<String> newMOTD) {
+        String build = String.join("\n", newMOTD);
+        MOTD = ChatColor.translateAlternateColorCodes('&', build);
+    }
 
 
     public static void setChatFormat(String format) {

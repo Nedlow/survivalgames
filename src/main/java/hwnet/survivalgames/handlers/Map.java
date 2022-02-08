@@ -1,8 +1,7 @@
 package hwnet.survivalgames.handlers;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -11,6 +10,9 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import hwnet.survivalgames.SettingsManager;
+
+import static java.util.Map.Entry.comparingByValue;
+import static java.util.stream.Collectors.toMap;
 
 public class Map {
 
@@ -46,7 +48,12 @@ public class Map {
         return tempId.get(map);
     }
 
-    public boolean hasTempId(Map map) {
+    public static void setVoteMap(Map map, int tempid) {
+        tempId.put(map, tempid);
+        voteMaps.add(map);
+    }
+
+    public static boolean hasTempId(Map map) {
         return tempId.get(map) != null;
     }
 
@@ -55,11 +62,20 @@ public class Map {
     }
 
     public static void setVoteMaps() {
-        for (Map map : getAllMaps()) {
-            if (map.hasTempId(map)) {
-                voteMaps.add(map);
-            }
+        for (Map map : sortedMap().keySet()) {
+            voteMaps.add(map);
         }
+    }
+
+    private static java.util.Map<Map, Integer> sortedMap() {
+        java.util.Map<Map, Integer> result = tempId.entrySet()
+                .stream()
+                .sorted(java.util.Map.Entry.comparingByValue())
+                .collect(Collectors.toMap(
+                        java.util.Map.Entry::getKey,
+                        java.util.Map.Entry::getValue,
+                        (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+        return result;
     }
 
     public static List<Map> getVoteMaps() {

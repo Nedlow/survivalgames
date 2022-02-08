@@ -29,6 +29,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import hwnet.survivalgames.SG;
 import hwnet.survivalgames.utils.ChatUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class JoinListener implements Listener {
 
     @EventHandler
@@ -59,6 +62,12 @@ public class JoinListener implements Listener {
             p.sendMessage(ChatColor.AQUA + "" + Gamer.getGamers().size() + "/24" + ChatColor.GREEN
                     + " tributes waiting to play.");
         }
+
+        List<String> motd = new ArrayList<String>();
+        motd.add("&6SurvalGames&7: &aIn Lobby");
+        motd.add("&a" + (24 - Gamer.getAliveGamers().size()) + " spots left!");
+        ChatUtil.setMOTD(motd);
+
         if (SG.config.getBoolean("settings.bungeecord")) {
             ItemStack s = new ItemStack(Material.NETHER_STAR, 1);
             ItemMeta m = s.getItemMeta();
@@ -116,8 +125,16 @@ public class JoinListener implements Listener {
 
     @EventHandler
     public void onMOTD(ServerListPingEvent e) {
+        e.setMotd(ChatUtil.getMOTD());
+    }
+
+    /*
+    @EventHandler
+    public void onMOTD(ServerListPingEvent e) {
         e.setMotd(ChatColor.translateAlternateColorCodes('&', SG.config.getString("settings.motd.lobby").replace("%newline%", "\n")));
     }
+
+     */
 
     @EventHandler
     public void onBreak(BlockBreakEvent event) {

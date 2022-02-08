@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.logging.Logger;
 
@@ -104,8 +105,11 @@ public class SG extends JavaPlugin {
         Team.setTeamSize(SG.config.getConfigurationSection("settings").getInt("teamSize"));
         ChatUtil.setChatFormat(SG.config.getConfigurationSection("settings.chat").getString("format"));
         maxPlayers = 24;
-        if (config.getBoolean("lobby.enabled"))
+        if (config.getBoolean("lobby.enabled")) {
             Bukkit.getWorld(config.getString("lobby.world")).setSpawnLocation(LocUtil.getLobbyLocation());
+            Bukkit.getWorld(config.getString("lobby.world")).setClearWeatherDuration(3600 * 20);
+        }
+
 
         if (getConfig().getConfigurationSection("settings.chat").getBoolean("customprefix")) {
             ChatUtil.setPrefix(SG.config.getConfigurationSection("settings.chat").getString("prefix"));
@@ -125,26 +129,38 @@ public class SG extends JavaPlugin {
             ChatUtil.sendMessage(clogger, "Registering maps");
             for (String maps : data.getConfigurationSection("arenas").getKeys(false)) {
                 Map map = new Map(data.getString("arenas." + maps + ".name"), maps);
+                ChatUtil.sendMessage(cmd, "Loaded " + map.getMapName());
                 ResetMap.createBackup(map, this);
                 WorldCreator worldc = new WorldCreator(map.getFileName());
                 World world = worldc.createWorld();
             }
+
+            ChatUtil.sendMessage(cmd, "A total of " + Map.getAllMaps().size() + " maps.");
             Random rand = new Random();
 
             if (Map.getAllMaps().size() >= 6) {
-                for (int i = 0; i < 6; i++) {
+                for (int id = 1; id < 7; id++) {
                     Map map = Map.getAllMaps().get(rand.nextInt(Map.getAllMaps().size()));
-                    Map.setTempId(map, i + 1);
-                    Map.setVoteMaps();
+                    while (Map.hasTempId(map)) {
+                        map = Map.getAllMaps().get(rand.nextInt(Map.getAllMaps().size()));
+                    }
+                    Map.setTempId(map, id);
                 }
             } else {
-                for (int i = 0; i < Map.getAllMaps().size(); i++) {
+                for (int i = 1; i <= Map.getAllMaps().size(); i++) {
                     Map map = Map.getAllMaps().get(i);
-                    Map.setTempId(map, i + 1);
+                    Map.setTempId(map, i);
                 }
-                Map.setVoteMaps();
             }
+            Map.setVoteMaps();
         }
+
+        List<String> motd = new ArrayList<String>();
+        motd.add("&6SurvalGames&7: &aIn Lobby");
+        motd.add("&a" + (24 - Gamer.getAliveGamers().size()) + " spots left!");
+        ChatUtil.setMOTD(motd);
+
+
         if (config.getBoolean("mysql.enabled")) {
             openConnection();
         }
@@ -428,7 +444,11 @@ public class SG extends JavaPlugin {
                 }
 
                 if (gametime >= (dmtime - 10) && gametime < dmtime) {
-                    ChatUtil.broadcast("&cDeathmatch in &4&l" + dmcountdown + " &cseconds.");
+                    for (Gamer gl : Gamer.getGamers()) {
+                        gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.BLOCK_NOTE_BLOCK_COW_BELL, 20, 1);
+                        gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&4") + String.valueOf(dmcountdown), "", 5, 10, 5);
+                    }
+                    //ChatUtil.broadcast("&cDeathmatch in &4&l" + dmcountdown + " &cseconds.");
                     dmcountdown--;
                 }
                 if (gametime == dmtime) {
@@ -445,7 +465,10 @@ public class SG extends JavaPlugin {
         unregisterStartEvents();
         registerGameEvents();
 
-
+        for (Gamer gl : Gamer.getGamers()) {
+            gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 20, 1);
+            gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&cFight!"), ChatColor.translateAlternateColorCodes('&', ""), 5, 10 * 3, 10);
+        }
         startDeathmatchTimer();
     }
 
@@ -511,6 +534,10 @@ public class SG extends JavaPlugin {
         } else if (team.getAlivePlayers().size() == 1) {
             ChatUtil.broadcast("&6&l" + team.getAlivePlayers().get(0).getName() + "&r from District " + team.getName() + " won the SurvivalGames!");
         }
+        for (Player p : team.getAlivePlayers()) {
+            p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6Victory!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 5, 10 * 5, 20);
+        }
+
 
         if (GameState.getState() == GameState.ENDGAME) {
             spawnFireworks(true);
