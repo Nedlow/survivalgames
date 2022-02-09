@@ -82,6 +82,10 @@ public class JoinListener implements Listener {
         Gamer g = Gamer.getGamer(event.getPlayer());
         g.remove();
         PointSystem.save(event.getPlayer());
+        List<String> motd = new ArrayList<String>();
+        motd.add("&6SurvalGames&7: &aIn Lobby");
+        motd.add("&a" + (24 - Gamer.getAliveGamers().size()) + " spots left!");
+        ChatUtil.setMOTD(motd);
     }
 
     @EventHandler

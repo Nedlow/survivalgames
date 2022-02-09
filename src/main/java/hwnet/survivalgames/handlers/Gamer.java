@@ -38,8 +38,8 @@ public class Gamer {
     }
 
     public static void clearRealGamers() {
-        for (Gamer g : getGamers()) {
-            if (!g.isSpectator() || !g.getPlayer().isOnline()) g.remove();
+        for (Gamer g : getRealGamers()) {
+            g.remove();
         }
     }
 

@@ -522,7 +522,7 @@ public class SG extends JavaPlugin {
         } else if (team == null && !SG.districts_mode) {
             ChatUtil.broadcast("&6&l" + player.getName() + "&r won the Survival Games!");
             for (Player p : Bukkit.getOnlinePlayers()) {
-                if (p == Gamer.getAliveGamers().get(0))
+                if (p.getUniqueId() == Gamer.getAliveGamers().get(0).getUUID())
                     p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6Victory!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
                 else
                     p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&7" + player.getName() + " won!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
@@ -576,9 +576,6 @@ public class SG extends JavaPlugin {
         for (Player pl : Bukkit.getOnlinePlayers()) {
             if (config.getBoolean("bungeecord")) sendToServer(pl, config.getString("lobbyserver"));
             else {
-                if (!Gamer.getGamer(pl.getUniqueId()).isAlive()) {
-                    Gamer.getGamer(pl.getUniqueId()).setAlive(true);
-                }
                 pl.setGameMode(GameMode.ADVENTURE);
                 clearPlayer(pl);
                 pl.showPlayer(SG.pl, pl);
@@ -628,15 +625,8 @@ public class SG extends JavaPlugin {
                 ChatUtil.sendMessage(cmd, "Added " + p.getName() + " to gamers");
             }
         }
-        ChatUtil.sendMessage(cmd, "All gamers: ");
-        for (Gamer g : Gamer.getRealGamers()) {
-            ChatUtil.sendMessage(cmd, g.getName());
-        }
-
 
         SG.startPreGameCountdown();
-
-
         // SET MOTD
         List<String> motd = new ArrayList<String>();
         motd.add("&6SurvalGames&7: &aIn Lobby");
