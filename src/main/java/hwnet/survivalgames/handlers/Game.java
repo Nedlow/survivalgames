@@ -14,6 +14,7 @@ import hwnet.survivalgames.utils.ChatUtil;
 import hwnet.survivalgames.utils.LocUtil;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 public class Game {
 
@@ -105,13 +106,20 @@ public class Game {
                         i++;
                     }
                 }
-                SG.startGameTimer();
-                /*
-                ChatUtil.sendMessage(SG.clogger, "All districts:");
-                for (Team a : Team.getAllTeams()) {
-                    ChatUtil.sendMessage(SG.clogger, a.getName() + ": " + a.getPlayers().toString());
+                SG.specGUI.getYourInventory().clear();
+                for (int iD = 0; iD < Gamer.getAliveGamers().size(); iD++) {
+                    ItemStack playerhead = new ItemStack(Material.PLAYER_HEAD);
+                    SkullMeta playerheadmeta = (SkullMeta) playerhead.getItemMeta();
+                    playerheadmeta.setOwner(Gamer.getAliveGamers().get(iD).getName());
+                    playerheadmeta.setDisplayName(Gamer.getAliveGamers().get(iD).getName());
+                    playerhead.setItemMeta(playerheadmeta);
+                    int finalI = iD;
+                    SG.specGUI.setItem(iD, playerhead, player -> {
+                        player.teleport(Gamer.getAliveGamers().get(finalI).getPlayer());
+                    });
                 }
-                 */
+
+                SG.startGameTimer();
 
                 List<String> motd = new ArrayList<String>();
                 motd.add("&6Surval Games&7: &cIn Game");
@@ -124,12 +132,6 @@ public class Game {
             Bukkit.getScheduler().cancelTask(SG.PreGamePID);
             ChatUtil.broadcast("Not enough tributes to start game!");
             SG.startPreGameCountdown();
-        }
-    }
-
-    public static void stop() {
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.kickPlayer(ChatColor.RED + "Server restarting");
         }
     }
 }

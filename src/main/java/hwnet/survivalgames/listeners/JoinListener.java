@@ -56,6 +56,8 @@ public class JoinListener implements Listener {
         }
         if (p.hasPermission("sg.admin")) {
             ChatUtil.sendMessage(p, "Joined as admin. Type /join to join the game");
+            p.sendMessage(ChatColor.AQUA + "" + Gamer.getGamers().size() + "/24" + ChatColor.GREEN
+                    + " tributes waiting to play.");
         } else {
             ChatUtil.sendVoteMenu(p);
             Gamer.getGamer(p);

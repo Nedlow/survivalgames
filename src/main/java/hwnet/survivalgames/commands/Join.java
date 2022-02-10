@@ -23,7 +23,13 @@ public class Join implements CommandExecutor {
             return true;
         }
         Player p = (Player) sender;
-        if (Gamer.getGamers().size() == SG.maxPlayers) {
+
+        if (Gamer.getGamer(p.getUniqueId()) != null) {
+            ChatUtil.sendMessage(p, "You are already participating!");
+            return true;
+        }
+
+        if (Gamer.getRealGamers().size() == SG.maxPlayers) {
             ChatUtil.sendMessage(p, "Could not join game. Reason: Game is full!");
             return true;
         }

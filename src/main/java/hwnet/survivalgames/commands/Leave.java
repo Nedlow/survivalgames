@@ -1,5 +1,7 @@
 package hwnet.survivalgames.commands;
 
+import hwnet.survivalgames.handlers.Gamer;
+import hwnet.survivalgames.utils.LocUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -24,15 +26,8 @@ public class Leave implements CommandExecutor {
 
         Player p = (Player) sender;
 
-        FileConfiguration c = SG.config;
-        World w = Bukkit.getWorld(c.getString("lobby.world"));
-        double x = c.getDouble("lobby.x");
-        double y = c.getDouble("lobby.y");
-        double z = c.getDouble("lobby.z");
-        float pitch = (float) c.getInt("lobby.pitch");
-        float yaw = (float) c.getInt("lobby.yaw");
-        Location loc = new Location(w, x, y, z, yaw, pitch);
-        p.teleport(loc);
+        LocUtil.teleportToLobby(p);
+        if (Gamer.getGamer(p.getUniqueId()) != null) Gamer.getGamer(p).remove();
 
         return false;
 

@@ -16,7 +16,8 @@ import java.util.logging.Logger;
 import hwnet.survivalgames.commands.*;
 import hwnet.survivalgames.handlers.*;
 import hwnet.survivalgames.handlers.Team;
-import hwnet.survivalgames.utils.ScoreboardUtil;
+import hwnet.survivalgames.listeners.*;
+import hwnet.survivalgames.utils.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -39,14 +40,6 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 
-import hwnet.survivalgames.listeners.GraceListener;
-import hwnet.survivalgames.listeners.IngameListener;
-import hwnet.survivalgames.listeners.JoinListener;
-import hwnet.survivalgames.listeners.StartListener;
-import hwnet.survivalgames.utils.ChatUtil;
-import hwnet.survivalgames.utils.LocUtil;
-import hwnet.survivalgames.utils.ResetMap;
-
 public class SG extends JavaPlugin {
 
     public static int cdId;
@@ -68,6 +61,7 @@ public class SG extends JavaPlugin {
     public static ConsoleCommandSender clogger;
 
     public static ScoreboardUtil SBU;
+    public static SpectatorGUI specGUI;
 
     @Override
     public void onLoad() {
@@ -142,6 +136,8 @@ public class SG extends JavaPlugin {
         if (config.getBoolean("mysql.enabled")) {
             openConnection();
         }
+        specGUI = new SpectatorGUI();
+        registerMenus();
         startPreGameCountdown();
     }
 
@@ -245,8 +241,12 @@ public class SG extends JavaPlugin {
     }
 
 
-    private static Listener preListener, startListener, graceListener, ingameListener;
+    private static Listener preListener, startListener, graceListener, ingameListener, menuListener;
 
+    private static void registerMenus() {
+        menuListener = new GUIListener();
+        Bukkit.getPluginManager().registerEvents(menuListener, SG.pl);
+    }
 
     public static void registerPreEvents() {
         preListener = new JoinListener();
@@ -373,7 +373,7 @@ public class SG extends JavaPlugin {
 
                     for (Gamer gl : Gamer.getGamers()) {
                         gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 20, 1);
-                        gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&bRun!"), ChatColor.translateAlternateColorCodes('&', "&eGrace period lasts for 5 seconds."), 5, 10 * 3, 10);
+                        gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&bRun!"), ChatColor.translateAlternateColorCodes('&', "&eGrace period lasts for 10 seconds."), 5, 10 * 3, 10);
                     }
 
                     /*
@@ -381,7 +381,7 @@ public class SG extends JavaPlugin {
                     ChatUtil.broadcast("&eThere is a grace period for 5 seconds.");
                      */
                 }
-                if (gametime == 22) {
+                if (gametime == 27) {
                     unregisterGraceEvents();
                     for (Gamer gl : Gamer.getGamers()) {
                         gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.AMBIENT_CAVE, 20, 1);
@@ -451,6 +451,8 @@ public class SG extends JavaPlugin {
         registerGraceEvents();
         registerGameEvents();
 
+        GameState.setState(GameState.ENDGAME);
+
         for (Gamer gl : Gamer.getGamers()) {
             gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 20, 1);
             gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&cFight!"), ChatColor.translateAlternateColorCodes('&', ""), 5, 10 * 3, 10);
@@ -510,6 +512,7 @@ public class SG extends JavaPlugin {
     }
 
     public static void win(Team team, Player player) {
+        GameState.setState(GameState.POSTGAME);
         if (player == null && SG.districts_mode) {
             if (team.getAlivePlayers().size() > 1) {
                 ChatUtil.broadcast("&6&l District " + team.getName() + "&r won the Survival Games with multiple players alive!");
@@ -522,13 +525,12 @@ public class SG extends JavaPlugin {
         } else if (team == null && !SG.districts_mode) {
             ChatUtil.broadcast("&6&l" + player.getName() + "&r won the Survival Games!");
             for (Player p : Bukkit.getOnlinePlayers()) {
-                if (p.getUniqueId() == Gamer.getAliveGamers().get(0).getUUID())
+                if (p.getUniqueId() == player.getUniqueId())
                     p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6Victory!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
                 else
                     p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&7" + player.getName() + " won!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
             }
         }
-
 
         if (GameState.getState() == GameState.ENDGAME) {
             spawnFireworks(true);
@@ -573,6 +575,7 @@ public class SG extends JavaPlugin {
 
 
     private static void cancelGame() {
+        GameState.setState(GameState.RESTARTING);
         for (Player pl : Bukkit.getOnlinePlayers()) {
             if (config.getBoolean("bungeecord")) sendToServer(pl, config.getString("lobbyserver"));
             else {
@@ -581,9 +584,6 @@ public class SG extends JavaPlugin {
                 pl.showPlayer(SG.pl, pl);
                 LocUtil.teleportToLobby(pl);
             }
-            //pl.kickPlayer(ChatColor.translateAlternateColorCodes('&', "&r&6District &6&l" + Team.getAliveTeams().get(0).getName() + " &r&6won!\n&cServer restarting."));
-            // NEW IMPLEMENTATION
-
         }
 
         // CLEAR ALL DATA (VOTES, RANDOM MAP IDS, GAMERS '
@@ -624,6 +624,9 @@ public class SG extends JavaPlugin {
                 Gamer.getGamer(p);
                 ChatUtil.sendMessage(cmd, "Added " + p.getName() + " to gamers");
             }
+            if (Gamer.getGamer(p.getUniqueId()) != null)
+                if (Gamer.getGamer(p).isSpectator())
+                    ChatUtil.sendMessage(p, "You spectated last game. To participate, you need to type /join while there are available slots.");
         }
 
         SG.startPreGameCountdown();
@@ -632,9 +635,8 @@ public class SG extends JavaPlugin {
         motd.add("&6SurvalGames&7: &aIn Lobby");
         motd.add("&a" + (24 - Gamer.getAliveGamers().size()) + " spots left!");
         ChatUtil.setMOTD(motd);
+        GameState.setState(GameState.WAITING);
 
-        // Stop server (OLD IMPLEMENTATION)
-        // Bukkit.shutdown();
     }
 
     public static void spawnFireworks(boolean dm) {

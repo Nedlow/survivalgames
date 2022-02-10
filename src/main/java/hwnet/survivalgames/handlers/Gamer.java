@@ -103,7 +103,7 @@ public class Gamer {
 
     public static List<Gamer> getAliveGamers() {
         List<Gamer> alive = new ArrayList<Gamer>();
-        boolean started = GameState.isState(GameState.INGAME);
+        boolean started = GameState.isState(GameState.INGAME) || GameState.isState(GameState.ENDGAME);
         for (Gamer g : gamers)
             if (started ? g.isAlive() : !g.isSpectator()) alive.add(g);
         return alive;

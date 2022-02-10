@@ -1,48 +1,32 @@
 package hwnet.survivalgames.commands;
 
+import hwnet.survivalgames.GameState;
 import hwnet.survivalgames.SG;
-import hwnet.survivalgames.utils.ScoreboardUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
+import hwnet.survivalgames.handlers.Gamer;
+import hwnet.survivalgames.utils.ChatUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
 public class Spectate implements CommandExecutor {
 
     @Override
     public boolean onCommand(
             CommandSender sender, Command cmd, String label, String[] args) {
-        if (args.length == 1) {
-            SG.SBU.addToTeam((Player) sender, args[0]);
+
+        if (GameState.getState() == GameState.INGAME || GameState.getState() == GameState.ENDGAME || GameState.getState() == GameState.POSTGAME) {
+            Gamer g = Gamer.getGamer((Player) sender);
+            if (!g.isAlive() && g.isSpectator()) {
+                ChatUtil.sendMessage((Player) sender, "No cheating ;)");
+                return true;
+            }
+            SG.specGUI.open((Player) sender);
+            return true;
         }
+
+        ChatUtil.sendMessage((Player) sender, "You can only open the spectate menu while in-game.");
+
+
         return false;
     }
 }
-
-
-/*
-Player p = (Player) sender;
-            if (Bukkit.getPlayer(args[0]) != null) {
-                p.setGameMode(GameMode.SPECTATOR);
-                p.setSpectatorTarget(Bukkit.getPlayer(args[0]));
-                p.sendMessage(
-                        ChatColor.GREEN
-                                + "You're now spectating "
-                                + ChatColor.BLUE
-                                + args[0]
-                                + ChatColor.GREEN
-                                + ".");
-            } else {
-                p.sendMessage(
-                        ChatColor.DARK_RED
-                                + "Player "
-                                + ChatColor.BLUE
-                                + args[0]
-                                + ChatColor.DARK_RED
-                                + " isn't online.");
-            }
-            return true;
- */

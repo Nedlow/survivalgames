@@ -13,7 +13,7 @@ public class StartListener implements Listener {
 
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
-        if (Gamer.getGamer(e.getPlayer()).isAlive()) {
+        if (Gamer.getGamer(e.getPlayer()).isAlive() && !Gamer.getGamer(e.getPlayer()).isSpectator()) {
             if (e.getTo().getX() == e.getFrom().getX() && e.getTo().getZ() == e.getFrom().getZ()) return;
             e.setCancelled(true);
             e.getPlayer().teleport(e.getFrom());

@@ -23,12 +23,11 @@ import hwnet.survivalgames.events.GamerKillEvent;
 import hwnet.survivalgames.handlers.Gamer;
 import hwnet.survivalgames.handlers.PointSystem;
 import hwnet.survivalgames.utils.ChatUtil;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerChatEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.event.weather.WeatherChangeEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,9 +54,37 @@ public class IngameListener implements Listener {
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
         Gamer g = Gamer.getGamer(p);
+        e.setJoinMessage(null);
         g.setAlive(false);
+        g.setSpectator(true);
         p.setGameMode(GameMode.SPECTATOR);
         p.teleport(Map.getActiveMap().getCenterLocation());
+        ChatUtil.sendMessage(p, "Joined as spectator.");
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent e) {
+        if (Gamer.getGamer(e.getPlayer().getUniqueId()) != null) {
+            if (Gamer.getGamer(e.getPlayer()).isAlive()) {
+                e.setQuitMessage(null);
+                ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/"
+                        + Gamer.getGamers().size() + " tributes remain");
+            }
+            Gamer.getGamer(e.getPlayer()).remove();
+
+            SG.specGUI.getYourInventory().clear();
+            for (int iD = 0; iD < Gamer.getAliveGamers().size(); iD++) {
+                ItemStack playerhead = new ItemStack(Material.PLAYER_HEAD);
+                SkullMeta playerheadmeta = (SkullMeta) playerhead.getItemMeta();
+                playerheadmeta.setOwner(Gamer.getAliveGamers().get(iD).getName());
+                playerheadmeta.setDisplayName(Gamer.getAliveGamers().get(iD).getName());
+                playerhead.setItemMeta(playerheadmeta);
+                int finalI = iD;
+                SG.specGUI.setItem(iD, playerhead, player -> {
+                    player.teleport(Gamer.getAliveGamers().get(finalI).getPlayer());
+                });
+            }
+        }
     }
 
 
@@ -158,6 +185,18 @@ public class IngameListener implements Listener {
                 SG.win(null, Gamer.getAliveGamers().get(0).getPlayer());
             }
         }
+        SG.specGUI.getYourInventory().clear();
+        for (int iD = 0; iD < Gamer.getAliveGamers().size(); iD++) {
+            ItemStack playerhead = new ItemStack(Material.PLAYER_HEAD);
+            SkullMeta playerheadmeta = (SkullMeta) playerhead.getItemMeta();
+            playerheadmeta.setOwner(Gamer.getAliveGamers().get(iD).getName());
+            playerheadmeta.setDisplayName(Gamer.getAliveGamers().get(iD).getName());
+            playerhead.setItemMeta(playerheadmeta);
+            int finalI = iD;
+            SG.specGUI.setItem(iD, playerhead, player -> {
+                player.teleport(Gamer.getAliveGamers().get(finalI).getPlayer());
+            });
+        }
     }
 
     @EventHandler
@@ -166,5 +205,4 @@ public class IngameListener implements Listener {
             event.setCancelled(true);
 
     }
-
 }
