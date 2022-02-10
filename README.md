@@ -24,12 +24,12 @@ It is made to run one match per server, and is therefore designed to be used wit
 ### Setup
 Setting up this plugin is quite simple. All you need is the plugin itself and some arenas (BungeeCord optional)
 1. Copy all arenas into your server root folder, and make sure all the names are short and have no spaces. (sg1,sg2,sge)  
-2. Go ingame and type /addmap <filename> <Displayname>. 
-3. Type /editarena <filename>. 
+2. Go ingame and type '/addmap <filename> <Displayname>'. 
+3. Type '/editarena <filename>'. 
 4. Go to every pod/spawn and make sure the player can run straight ahead.
-5. Type /addspawn <filename> <index>. For index put 0-23. Repeat step for every spawn.   
-5. Find the center of the arena and type /addspawn <filename> center. This sets the center of arena (Decides sound locations, compass direction)
+5. Type '/addspawn <filename> <index>'. For index put 0-23. Repeat step for every spawn.   
+5. Find the center of the arena and type '/addspawn <filename> center'. This sets the center of arena (Decides sound locations, compass direction)
 6. Do any other changes to the map if needed, and finally type /savearena <filename>.
 7. Teleport to the location of your lobby by writing /tploc <world> <x> <y> <z>
-8. Set lobby with /setlobby.
+8. Set lobby with '/setlobby'.
 9. Restart the server.
