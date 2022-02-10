@@ -3,12 +3,15 @@ Rewrite and upgrade of my previous SG plugin.
 
 
 ### Features
-It is firstly made to run only one match per server, and is therefore supposed to be used with BungeeCord. There is a setting for this in the config.
+It is made to run one match per server, and is therefore designed to be used with BungeeCord. It can reset without restarting. If BungeeCord is disabled, players will be teleported back to lobby instead of server restart.
 - Easy setup
 - Open source
+- BungeeCord support
+- Supports game reset without server shutdown
 - Deathmatch mode to finish maps in reasonable time
 - District mode: Allows for 12 teams of 2 players
 - Configurable chest contents
+- Spectator menu for easy spectator movement across the arena
 
 
 ### TODO:
