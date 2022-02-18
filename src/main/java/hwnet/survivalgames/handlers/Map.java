@@ -36,6 +36,13 @@ public class Map {
         allMaps.add(map);
     }
 
+    public static Map getMap(String filename) {
+        for (Map map : allMaps) {
+            if (map.fileName == filename) return map;
+        }
+        return null;
+    }
+
     public static List<Map> getAllMaps() {
         return allMaps;
     }

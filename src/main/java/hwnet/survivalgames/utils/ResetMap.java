@@ -47,7 +47,7 @@ public class ResetMap {
         }
     }
 
-    public static void createBackup(Map map, Plugin p) {
+    public static void createBackup(Map map, Plugin p, boolean override) {
 
         File backupDir = new File(p.getDataFolder(), "backups");
         if (!backupDir.exists()) {
@@ -55,7 +55,7 @@ public class ResetMap {
         }
 
         File dest = new File(p.getDataFolder(), File.separator + "backups" + File.separator + map.getFileName());
-        if (dest.exists()) {
+        if (dest.exists() && !override) {
             ChatUtil.sendMessage(SG.clogger, "No backup needed for map " + map.getMapName());
         } else {
             File src = new File(map.getFileName());

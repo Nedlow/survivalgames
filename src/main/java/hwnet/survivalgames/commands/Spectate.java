@@ -8,14 +8,15 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
 public class Spectate implements CommandExecutor {
 
     @Override
     public boolean onCommand(
             CommandSender sender, Command cmd, String label, String[] args) {
 
+        Gamer g = Gamer.getGamer((Player) sender);
         if (GameState.getState() == GameState.INGAME || GameState.getState() == GameState.ENDGAME || GameState.getState() == GameState.POSTGAME) {
-            Gamer g = Gamer.getGamer((Player) sender);
             if (!g.isAlive() && g.isSpectator()) {
                 ChatUtil.sendMessage((Player) sender, "No cheating ;)");
                 return true;
@@ -24,9 +25,13 @@ public class Spectate implements CommandExecutor {
             return true;
         }
 
-        ChatUtil.sendMessage((Player) sender, "You can only open the spectate menu while in-game.");
-
-
+        if (!g.isSpectator()) {
+            g.setSpectator(true);
+            g.setAlive(false);
+            ChatUtil.sendMessage((Player) sender, "You are now a spectator. Make sure to follow our game rules!");
+        } else {
+            ChatUtil.sendMessage((Player) sender, "You are already a spectator! Use /join to play.");
+        }
         return false;
     }
 }

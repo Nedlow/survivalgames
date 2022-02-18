@@ -24,7 +24,7 @@ public class Join implements CommandExecutor {
         }
         Player p = (Player) sender;
 
-        if (Gamer.getGamer(p.getUniqueId()) != null) {
+        if (Gamer.getGamer(p.getUniqueId()) != null && !Gamer.getGamer(p).isSpectator()) {
             ChatUtil.sendMessage(p, "You are already participating!");
             return true;
         }
@@ -34,6 +34,8 @@ public class Join implements CommandExecutor {
             return true;
         }
         Gamer.getGamer(p).setSpectator(false);
+        Gamer.getGamer(p).setAlive(true);
+
         ChatUtil.sendMessage(p, "Joined game.");
         ChatUtil.sendVoteMenu(p);
         return false;
