@@ -1,6 +1,9 @@
 package hwnet.survivalgames.commands;
 
+import hwnet.survivalgames.SG;
+import hwnet.survivalgames.handlers.Map;
 import hwnet.survivalgames.utils.ChatUtil;
+import hwnet.survivalgames.utils.ResetMap;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -39,22 +42,17 @@ public class EditArena implements CommandExecutor {
                 double z = Bukkit.getWorld(args[0]).getSpawnLocation().getZ();
                 p.teleport(new Location(world, x, y, z));
                 p.setGameMode(GameMode.CREATIVE);
-                ChatUtil.sendMessage(p,"Editing arena '" + args[0] + "'.");
+                ChatUtil.sendMessage(p, "Editing arena '" + args[0] + "'.");
             } else {
                 p.sendMessage(ChatColor.RED + "No permission.");
             }
         } else if (label.equalsIgnoreCase("savearena")) {
-            if (args.length == 0) {
-                p.sendMessage("Usage: /savearena <filename>");
-                return true;
-            }
-            WorldCreator wc = new WorldCreator(args[0]);
-            World world = wc.createWorld();
-            world.save();
+            p.getWorld().save();
+            ResetMap.createBackup(Map.getMap(p.getWorld().getName()), SG.pl, true);
 
             LocUtil.teleportToLobby(p);
             String msg = "&aSaved arena &f'&a" + args[0] + "&f'";
-            p.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
+            ChatUtil.sendMessage(p, msg);
         }
         return false;
     }

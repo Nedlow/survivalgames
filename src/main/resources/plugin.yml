@@ -15,9 +15,13 @@ commands:
     permission: sg.admin
   savearena:
     permission: sg.admin
+  spawn:
+    aliases: lobby
   fstart:
     permission: sg.admin
   forcedm:
+    permission: sg.admin
+  addtime:
     permission: sg.admin
   join:
   leave:
@@ -28,3 +32,9 @@ commands:
   points:
   volunteer:
   spectate:
+  devmode:
+    permission: sg.admin
+    description: Toggles developer mode, only staff can access
+  softstop:
+    permission: sg.admin
+  resourcepack:

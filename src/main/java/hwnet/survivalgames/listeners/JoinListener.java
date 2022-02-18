@@ -47,27 +47,36 @@ public class JoinListener implements Listener {
         LocUtil.teleportToLobby(p);
         SG.clearPlayer(p);
 
+
         // SCOREBOARD
         SG.SBU.setScoreboard(p);
 
         p.setGameMode(GameMode.ADVENTURE);
+        Gamer g = Gamer.getGamer(p);
         if (!PointSystem.load(p)) {
             PointSystem.setPoints(p, 0);
         }
         if (p.hasPermission("sg.admin")) {
             ChatUtil.sendMessage(p, "Joined as admin. Type /join to join the game");
-            p.sendMessage(ChatColor.AQUA + "" + Gamer.getGamers().size() + "/24" + ChatColor.GREEN
+            g.setAlive(false);
+            g.setSpectator(true);
+            ChatUtil.sendMessage(p, ChatColor.AQUA + "" + Gamer.getRealGamers().size() + "/24" + ChatColor.GREEN
                     + " tributes waiting to play.");
+            if (!SG.checkCanStart())
+                ChatUtil.sendMessage(p, "We need " + (SG.minPlayers - Gamer.getRealGamers().size()) + " more tributes to start game.");
         } else {
             ChatUtil.sendVoteMenu(p);
-            Gamer.getGamer(p);
-            p.sendMessage(ChatColor.AQUA + "" + Gamer.getGamers().size() + "/24" + ChatColor.GREEN
+            ChatUtil.broadcast(ChatColor.AQUA + "" + Gamer.getRealGamers().size() + "/24" + ChatColor.GREEN
                     + " tributes waiting to play.");
+            if (!SG.checkCanStart())
+                ChatUtil.sendMessage(p, "We need " + (SG.minPlayers - Gamer.getRealGamers().size()) + " more tributes to start game.");
         }
+
+        ChatUtil.sendMessage(p, "We recommend the use of the PureBDCraft resource-pack. To use this pack, do /resourcepack enable");
 
         List<String> motd = new ArrayList<String>();
         motd.add("&6SurvalGames&7: &aIn Lobby");
-        motd.add("&a" + (24 - Gamer.getAliveGamers().size()) + " spots left!");
+        motd.add("&a" + (24 - Gamer.getRealGamers().size()) + " spots left!");
         ChatUtil.setMOTD(motd);
 
         if (SG.config.getBoolean("settings.bungeecord")) {
@@ -86,7 +95,7 @@ public class JoinListener implements Listener {
         PointSystem.save(event.getPlayer());
         List<String> motd = new ArrayList<String>();
         motd.add("&6SurvalGames&7: &aIn Lobby");
-        motd.add("&a" + (24 - Gamer.getAliveGamers().size()) + " spots left!");
+        motd.add("&a" + (24 - Gamer.getRealGamers().size()) + " spots left!");
         ChatUtil.setMOTD(motd);
     }
 

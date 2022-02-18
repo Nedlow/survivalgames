@@ -1,12 +1,8 @@
 package hwnet.survivalgames.listeners;
 
-import hwnet.survivalgames.handlers.Map;
-import hwnet.survivalgames.handlers.Team;
+import hwnet.survivalgames.handlers.*;
 import hwnet.survivalgames.utils.LocUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Material;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,13 +16,13 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import hwnet.survivalgames.SG;
 import hwnet.survivalgames.events.GamerDeathEvent;
 import hwnet.survivalgames.events.GamerKillEvent;
-import hwnet.survivalgames.handlers.Gamer;
-import hwnet.survivalgames.handlers.PointSystem;
 import hwnet.survivalgames.utils.ChatUtil;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.event.weather.WeatherChangeEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.ArrayList;
@@ -47,8 +43,7 @@ public class IngameListener implements Listener {
 
     @EventHandler
     public void onJoinPre(PlayerLoginEvent event) {
-        if (event.getResult() == PlayerLoginEvent.Result.KICK_FULL)
-            event.setResult(PlayerLoginEvent.Result.ALLOWED);
+        if (event.getResult() == PlayerLoginEvent.Result.KICK_FULL) event.setResult(PlayerLoginEvent.Result.ALLOWED);
     }
 
     @EventHandler
@@ -60,6 +55,17 @@ public class IngameListener implements Listener {
         g.setSpectator(true);
         p.setGameMode(GameMode.SPECTATOR);
         p.teleport(Map.getActiveMap().getCenterLocation());
+
+        // Player Menu item
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        ItemMeta meta = head.getItemMeta();
+        meta.setDisplayName(ChatColor.GOLD + "Spectate Menu");
+        List<String> lore = new ArrayList<String>();
+        lore.add("Click on a head to teleport");
+        meta.setLore(lore);
+        head.setItemMeta(meta);
+        p.getInventory().setItem(0, head);
+
         ChatUtil.sendMessage(p, "Joined as spectator.");
     }
 
@@ -68,23 +74,10 @@ public class IngameListener implements Listener {
         if (Gamer.getGamer(e.getPlayer().getUniqueId()) != null) {
             if (Gamer.getGamer(e.getPlayer()).isAlive()) {
                 e.setQuitMessage(null);
-                ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/"
-                        + Gamer.getGamers().size() + " tributes remain");
+                ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/" + Gamer.getGamers().size() + " tributes remain");
+                Gamer.getGamer(e.getPlayer()).remove();
             }
-            Gamer.getGamer(e.getPlayer()).remove();
-
             SG.specGUI.getYourInventory().clear();
-            for (int iD = 0; iD < Gamer.getAliveGamers().size(); iD++) {
-                ItemStack playerhead = new ItemStack(Material.PLAYER_HEAD);
-                SkullMeta playerheadmeta = (SkullMeta) playerhead.getItemMeta();
-                playerheadmeta.setOwner(Gamer.getAliveGamers().get(iD).getName());
-                playerheadmeta.setDisplayName(Gamer.getAliveGamers().get(iD).getName());
-                playerhead.setItemMeta(playerheadmeta);
-                int finalI = iD;
-                SG.specGUI.setItem(iD, playerhead, player -> {
-                    player.teleport(Gamer.getAliveGamers().get(finalI).getPlayer());
-                });
-            }
         }
     }
 
@@ -92,13 +85,14 @@ public class IngameListener implements Listener {
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
         e.setCancelled(true);
-        Team t = Team.getTeam(e.getPlayer());
-        int points = PointSystem.getPoints(e.getPlayer());
-        String format = ChatUtil.getFormat().replace("%points", String.valueOf(points)).replace("%name", e.getPlayer().getName()).
-                replace("%msg", e.getMessage());
-        for (Player p : t.getPlayers()) {
-            p.sendMessage(format);
-            ChatUtil.sendMessage(SG.cmd, format);
+        if (SG.districts_mode) {
+            Team t = Team.getTeam(e.getPlayer());
+            int points = PointSystem.getPoints(e.getPlayer());
+            String format = ChatUtil.getFormat().replace("%points", String.valueOf(points)).replace("%name", e.getPlayer().getName()).replace("%msg", e.getMessage());
+            for (Player p : t.getPlayers()) {
+                p.sendMessage(format);
+                ChatUtil.sendMessage(SG.cmd, format);
+            }
         }
     }
 
@@ -115,8 +109,7 @@ public class IngameListener implements Listener {
 
             if (e.getDamager() instanceof Player) {
                 Player d = (Player) e.getDamager();
-                if (SG.districts_mode)
-                    if (Team.getTeam(p).equals(Team.getTeam(d))) e.setCancelled(true);
+                if (SG.districts_mode) if (Team.getTeam(p).equals(Team.getTeam(d))) e.setCancelled(true);
             }
             if (p.getHealth() - e.getFinalDamage() < 1) {
                 handleDeath(p);
@@ -128,8 +121,7 @@ public class IngameListener implements Listener {
                     PointSystem.addPoints(d, SG.config.getInt("points.kill"));
 
                     Bukkit.getPluginManager().callEvent(new GamerKillEvent(p, d));
-                    if (SG.config.getBoolean("mysql.enabled"))
-                        Gamer.getGamer(d).addKill();
+                    if (SG.config.getBoolean("mysql.enabled")) Gamer.getGamer(d).addKill();
                 }
             }
         }
@@ -146,11 +138,53 @@ public class IngameListener implements Listener {
         }
     }
 
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent e) {
+        if ((e.getCurrentItem().getType() == Material.COMPASS) || (e.getCurrentItem().getType() == Material.PLAYER_HEAD)) {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onDropItem(PlayerDropItemEvent e) {
+        if ((e.getItemDrop().getItemStack().getType() == Material.COMPASS) || (e.getItemDrop().getItemStack().getType() == Material.PLAYER_HEAD)) {
+            e.getPlayer().sendMessage("It would not be wise to drop this item.");
+            e.setCancelled(true);
+        }
+    }
+
+
+    @EventHandler
+    public void onBreak(BlockBreakEvent event) {
+        if (event.getBlock().getType() == Material.GLASS) event.setCancelled(true);
+    }
+
     private void handleDeath(Player p) {
         if (!Gamer.getGamer(p.getUniqueId()).isAlive()) return;
 
         p.setHealth(20);
+        for (ItemStack is : p.getInventory().getContents()) {
+            if (is == null) continue;
+            p.getWorld().dropItemNaturally(p.getLocation(), is);
+        }
+
+        for (ItemStack is : p.getInventory().getArmorContents()) {
+            if (is == null) continue;
+            p.getWorld().dropItemNaturally(p.getLocation(), is);
+        }
+        SG.clearPlayer(p);
         p.setGameMode(GameMode.SPECTATOR);
+        p.setFlySpeed(0.2F);
+        // Player Menu item
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        ItemMeta meta = head.getItemMeta();
+        meta.setDisplayName(ChatColor.GOLD + "Spectate Menu");
+        List<String> lore = new ArrayList<String>();
+        lore.add("Click on a head to teleport");
+        meta.setLore(lore);
+        head.setItemMeta(meta);
+        p.getInventory().setItem(0, head);
+
         Gamer g = Gamer.getGamer(p);
         g.setAlive(false);
 
@@ -158,8 +192,7 @@ public class IngameListener implements Listener {
             pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 20, 1);
             pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 20, 1);
         }
-        ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/"
-                + Gamer.getGamers().size() + " tributes remain");
+        ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/" + Gamer.getGamers().size() + " tributes remain");
 
         if (SG.districts_mode) {
             Team t = Team.getTeam(p);
@@ -173,7 +206,7 @@ public class IngameListener implements Listener {
                     po.setSpectatorTarget(null);
                 }
                 if (Team.getAliveTeams().size() == 1) {
-                    SG.win(Team.getAliveTeams().get(0), null);
+                    Game.win(Team.getAliveTeams().get(0), null);
                 } else {
                     ChatUtil.broadcast("District " + t.getName() + " has been eliminated! Only " + Team.getAliveTeams().size() + " left.");
                 }
@@ -183,7 +216,7 @@ public class IngameListener implements Listener {
             }
         } else {
             if (Gamer.getAliveGamers().size() < 2) {
-                SG.win(null, Gamer.getAliveGamers().get(0).getPlayer());
+                Game.win(null, Gamer.getAliveGamers().get(0).getPlayer());
             }
         }
         SG.specGUI.getYourInventory().clear();
@@ -198,12 +231,5 @@ public class IngameListener implements Listener {
                 player.teleport(Gamer.getAliveGamers().get(finalI).getPlayer());
             });
         }
-    }
-
-    @EventHandler
-    public void onBreak(BlockBreakEvent event) {
-        if (event.getBlock().getType() == Material.GLASS)
-            event.setCancelled(true);
-
     }
 }

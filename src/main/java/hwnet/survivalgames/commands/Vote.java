@@ -21,7 +21,7 @@ public class Vote implements CommandExecutor {
 
         Player p = (Player) sender;
 
-        if (Gamer.getGamer(p.getUniqueId()) == null) {
+        if (Gamer.getGamer(p.getUniqueId()) == null || Gamer.getGamer(p.getUniqueId()).isSpectator()) {
             ChatUtil.sendMessage(p, ChatColor.RED + "You are not currently participating! Do /join first.");
             return true;
         }

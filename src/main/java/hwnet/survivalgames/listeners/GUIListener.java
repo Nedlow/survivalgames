@@ -48,5 +48,4 @@ public class GUIListener implements Listener {
 
         GUI.openInventories.remove(playerUUID);
     }
-
 }
