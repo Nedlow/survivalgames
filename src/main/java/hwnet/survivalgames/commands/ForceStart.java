@@ -16,6 +16,7 @@ public class ForceStart implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
         SG.setMinPlayers(1);
+        SG.startPreGameCountdown();
         SG.pretime = 10;
         ChatUtil.sendMessage(sender, "Force starting game...");
         return false;

@@ -7,9 +7,7 @@ import java.util.Random;
 import hwnet.survivalgames.utils.ResetMap;
 import hwnet.survivalgames.utils.ScoreboardUtil;
 import org.bukkit.*;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Firework;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 
 import hwnet.survivalgames.GameState;
 import hwnet.survivalgames.SG;
@@ -64,8 +62,6 @@ public class Game {
             hasStarted = true;
             GameState.setState(GameState.INGAME);
 
-            ChestHandler.fillAllChests(Map.getActiveMap().getFileName());
-            ChatUtil.sendMessage(SG.clogger, "Filled chests with loot");
 
             Bukkit.getWorld(Map.getActiveMap().getFileName()).setTime(0);
             if (SG.districts_mode) {
@@ -90,6 +86,7 @@ public class Game {
                 Player p = pla.getPlayer();
 
                 SG.clearPlayer(p);
+                SG.SBU.swapToIngame(p);
                 if (pla.isSpectator()) {
                     p.teleport(Map.getActiveMap().getCenterLocation());
                     p.setGameMode(GameMode.SPECTATOR);
@@ -110,9 +107,21 @@ public class Game {
                     participants.add(p);
                     LocUtil.teleportToGame(p, i);
                     p.setGameMode(GameMode.SURVIVAL);
+                    PointSystem.addGame(p);
+
                     i++;
                 }
             }
+            SG.SBU.updateScoreboard();
+            Bukkit.getScheduler().scheduleSyncDelayedTask(SG.pl, new Runnable() {
+                @Override
+                public void run() {
+                    ChestHandler.fillAllChests(Map.getActiveMap().getFileName());
+                    ChatUtil.sendMessage(SG.clogger, "Filled chests with loot");
+                }
+            }, 20L * 3);
+
+
             SG.specGUI.getYourInventory().clear();
             for (int iD = 0; iD < Gamer.getAliveGamers().size(); iD++) {
                 ItemStack playerhead = new ItemStack(Material.PLAYER_HEAD);
@@ -125,6 +134,13 @@ public class Game {
                     player.teleport(Gamer.getAliveGamers().get(finalI).getPlayer());
                 });
             }
+
+
+            for (Entity e : w.getEntities()) {
+                if (e instanceof Player || e instanceof ArmorStand) continue;
+                e.remove();
+            }
+
 
             SG.startGameTimer();
 
@@ -151,9 +167,11 @@ public class Game {
             }
             for (Player p : team.getAlivePlayers()) {
                 p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6Victory!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
+                PointSystem.addWin(p);
             }
         } else if (team == null && !SG.districts_mode) {
             ChatUtil.broadcast("&6&l" + player.getName() + "&r won the Survival Games!");
+            PointSystem.addWin(player);
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (p.getUniqueId() == player.getUniqueId())
                     p.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6Victory!"), ChatColor.translateAlternateColorCodes('&', "&eThanks for playing."), 20, 20 * 5, 20);
@@ -189,14 +207,14 @@ public class Game {
                 if (SG.districts_mode) {
                     for (Player p : Team.getAliveTeams().get(0).getAlivePlayers()) {
                         PointSystem.addPoints(p, 200);
-                        Gamer g = Gamer.getGamer(p);
-                        if (SG.config.getBoolean("mysql.enabled")) g.addWin();
+                        PointSystem.addWin(p);
+                        PointSystem.save(p);
                     }
                 } else {
                     Gamer g = Gamer.getAliveGamers().get(0);
                     PointSystem.addPoints(g.getPlayer(), 200);
-
-                    if (SG.config.getBoolean("mysql.enabled")) g.addWin();
+                    PointSystem.addWin(g.getPlayer());
+                    PointSystem.save(g.getPlayer());
                 }
                 Game.cancelGame();
             }
@@ -294,6 +312,7 @@ public class Game {
     public static void cancelGame() {
         GameState.setState(GameState.RESTARTING);
         for (Player pl : Bukkit.getOnlinePlayers()) {
+            PointSystem.save(pl);
             if (SG.config.getBoolean("bungeecord")) SG.sendToServer(pl, SG.config.getString("lobbyserver"));
             else {
                 pl.setGameMode(GameMode.ADVENTURE);
@@ -310,8 +329,7 @@ public class Game {
         Bukkit.getScheduler().cancelTask(SG.gamePID);
         Bukkit.getScheduler().cancelTask(SG.compassPID);
         Gamer.clearRealGamers();
-        if (SG.districts_mode)
-            ScoreboardUtil.resetScoreboard();
+        if (SG.districts_mode) ScoreboardUtil.resetScoreboard();
         Team.clearInfo();
         VoteHandler.clearVotes();
 
@@ -338,9 +356,8 @@ public class Game {
                 Gamer.getGamer(p);
                 ChatUtil.sendMessage(SG.cmd, "Added " + p.getName() + " to gamers");
             }
-            if (Gamer.getGamer(p.getUniqueId()) != null)
-                if (Gamer.getGamer(p).isSpectator())
-                    ChatUtil.sendMessage(p, "You spectated last game. To participate, you need to type /join while there are available slots.");
+            if (Gamer.getGamer(p.getUniqueId()) != null) if (Gamer.getGamer(p).isSpectator())
+                ChatUtil.sendMessage(p, "You spectated last game. To participate, you need to type /join while there are available slots.");
         }
         if (!SG.checkCanStart())
             ChatUtil.broadcast("We need " + (SG.minPlayers - Gamer.getRealGamers().size()) + " more tributes to start game.");
@@ -350,5 +367,12 @@ public class Game {
         motd.add("&a" + (24 - Gamer.getAliveGamers().size()) + " spots left!");
         ChatUtil.setMOTD(motd);
         GameState.setState(GameState.WAITING);
+
+        PointSystem.FetchTopWinFromDB();
+        PointSystem.FetchTopKillFromDB();
+        PointSystem.FetchTopDeathsFromDB();
+
+        ClickSign.updateSigns();
+
     }
 }

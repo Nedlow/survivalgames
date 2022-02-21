@@ -38,3 +38,9 @@ commands:
   softstop:
     permission: sg.admin
   resourcepack:
+  setsign:
+    permission: sg.admin
+  cancel:
+    permission: sg.admin
+    usage: /cancel [time in seconds]
+    description: Cancels the current game.

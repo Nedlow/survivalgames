@@ -33,7 +33,7 @@ public class IngameListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
-        event.setCancelled(true);
+        if (!(event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.DISPENSE_EGG)) event.setCancelled(true);
     }
 
     @EventHandler
@@ -75,6 +75,8 @@ public class IngameListener implements Listener {
             if (Gamer.getGamer(e.getPlayer()).isAlive()) {
                 e.setQuitMessage(null);
                 ChatUtil.broadcast("A tribute has fallen. " + Gamer.getAliveGamers().size() + "/" + Gamer.getGamers().size() + " tributes remain");
+                PointSystem.addDeath(e.getPlayer());
+                PointSystem.save(e.getPlayer());
                 Gamer.getGamer(e.getPlayer()).remove();
             }
             SG.specGUI.getYourInventory().clear();
@@ -115,13 +117,13 @@ public class IngameListener implements Listener {
                 handleDeath(p);
                 if (e.getDamager() instanceof Player) {
                     Player d = (Player) e.getDamager();
+                    PointSystem.addKill(d);
 
                     // Point System
                     PointSystem.addPoints(p, SG.config.getInt("points.lose"));
                     PointSystem.addPoints(d, SG.config.getInt("points.kill"));
 
                     Bukkit.getPluginManager().callEvent(new GamerKillEvent(p, d));
-                    if (SG.config.getBoolean("mysql.enabled")) Gamer.getGamer(d).addKill();
                 }
             }
         }
@@ -140,6 +142,7 @@ public class IngameListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
+        if (e.getCurrentItem() == null) return;
         if ((e.getCurrentItem().getType() == Material.COMPASS) || (e.getCurrentItem().getType() == Material.PLAYER_HEAD)) {
             e.setCancelled(true);
         }
@@ -173,6 +176,7 @@ public class IngameListener implements Listener {
             p.getWorld().dropItemNaturally(p.getLocation(), is);
         }
         SG.clearPlayer(p);
+        PointSystem.addDeath(p);
         p.setGameMode(GameMode.SPECTATOR);
         p.setFlySpeed(0.2F);
         // Player Menu item

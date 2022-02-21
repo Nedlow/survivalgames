@@ -9,7 +9,10 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Bat;
+import org.bukkit.entity.GlowSquid;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Squid;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -17,6 +20,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
@@ -36,8 +40,7 @@ public class JoinListener implements Listener {
 
     @EventHandler
     public void onJoinPre(PlayerLoginEvent event) {
-        if (event.getResult() == Result.KICK_FULL)
-            event.setResult(Result.ALLOWED);
+        if (event.getResult() == Result.KICK_FULL) event.setResult(Result.ALLOWED);
     }
 
     @EventHandler
@@ -54,25 +57,23 @@ public class JoinListener implements Listener {
         p.setGameMode(GameMode.ADVENTURE);
         Gamer g = Gamer.getGamer(p);
         if (!PointSystem.load(p)) {
-            PointSystem.setPoints(p, 0);
+            PointSystem.initialize(p);
         }
         if (p.hasPermission("sg.admin")) {
             ChatUtil.sendMessage(p, "Joined as admin. Type /join to join the game");
             g.setAlive(false);
             g.setSpectator(true);
-            ChatUtil.sendMessage(p, ChatColor.AQUA + "" + Gamer.getRealGamers().size() + "/24" + ChatColor.GREEN
-                    + " tributes waiting to play.");
+            ChatUtil.sendMessage(p, ChatColor.AQUA + "" + Gamer.getRealGamers().size() + "/24" + ChatColor.GREEN + " tributes waiting to play.");
             if (!SG.checkCanStart())
-                ChatUtil.sendMessage(p, "We need " + (SG.minPlayers - Gamer.getRealGamers().size()) + " more tributes to start game.");
+                ChatUtil.sendMessage(p, "" + (SG.minPlayers - Gamer.getRealGamers().size()) + " more tributes needed to start game.");
         } else {
             ChatUtil.sendVoteMenu(p);
-            ChatUtil.broadcast(ChatColor.AQUA + "" + Gamer.getRealGamers().size() + "/24" + ChatColor.GREEN
-                    + " tributes waiting to play.");
+            ChatUtil.broadcast(ChatColor.AQUA + "" + Gamer.getRealGamers().size() + "/24" + ChatColor.GREEN + " tributes waiting to play.");
             if (!SG.checkCanStart())
-                ChatUtil.sendMessage(p, "We need " + (SG.minPlayers - Gamer.getRealGamers().size()) + " more tributes to start game.");
+                ChatUtil.sendMessage(p, "" + (SG.minPlayers - Gamer.getRealGamers().size()) + " more tributes needed to start game.");
         }
 
-        ChatUtil.sendMessage(p, "We recommend the use of the PureBDCraft resource-pack. To use this pack, do /resourcepack enable");
+        ChatUtil.sendMessage(p, "We recommend the use of the SapixCraft resource-pack. To use this pack, use /resourcepack enable");
 
         List<String> motd = new ArrayList<String>();
         motd.add("&6SurvalGames&7: &aIn Lobby");
@@ -102,8 +103,7 @@ public class JoinListener implements Listener {
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
         int points = PointSystem.getPoints(e.getPlayer());
-        e.setMessage(ChatUtil.getFormat().replace("%points", String.valueOf(points)).replace("%name", e.getPlayer().getName()).
-                replace("%msg", e.getMessage()));
+        e.setMessage(ChatUtil.getFormat().replace("%points", String.valueOf(points)).replace("%name", e.getPlayer().getName()).replace("%msg", e.getMessage()));
         e.setFormat("");
     }
 
@@ -119,10 +119,14 @@ public class JoinListener implements Listener {
     }
 
     @EventHandler
+    public void onEntitySpawn(EntitySpawnEvent e) {
+        if (e instanceof Bat || e instanceof GlowSquid) e.setCancelled(true);
+    }
+
+    @EventHandler
     public void onLeaveClick(PlayerInteractEvent e) {
         if (SG.config.getBoolean("settings.bungeecord")) {
-            if (e.getItem() == null)
-                return;
+            if (e.getItem() == null) return;
             if (e.getItem().getType().equals(Material.NETHER_STAR)) {
                 SG.sendToServer(e.getPlayer(), SG.config.getString("settings.lobbyserver"));
             }
@@ -154,26 +158,22 @@ public class JoinListener implements Listener {
 
     @EventHandler
     public void onBreak(BlockBreakEvent event) {
-        if (event.getPlayer().getGameMode() == GameMode.SURVIVAL)
-            event.setCancelled(true);
+        if (event.getPlayer().getGameMode() == GameMode.SURVIVAL) event.setCancelled(true);
     }
 
     @EventHandler
     public void onPickup(PlayerPickupItemEvent event) {
-        if (event.getPlayer().getGameMode() == GameMode.SURVIVAL)
-            event.setCancelled(true);
+        if (event.getPlayer().getGameMode() == GameMode.SURVIVAL) event.setCancelled(true);
     }
 
     @EventHandler
     public void onDrop(PlayerDropItemEvent event) {
-        if (event.getPlayer().getGameMode() == GameMode.SURVIVAL)
-            event.setCancelled(true);
+        if (event.getPlayer().getGameMode() == GameMode.SURVIVAL) event.setCancelled(true);
     }
 
     @EventHandler
     public void onPlace(BlockPlaceEvent event) {
-        if (event.getPlayer().getGameMode() == GameMode.SURVIVAL)
-            event.setCancelled(true);
+        if (event.getPlayer().getGameMode() == GameMode.SURVIVAL) event.setCancelled(true);
     }
 
     @EventHandler
@@ -188,7 +188,6 @@ public class JoinListener implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
-        if (event.getPlayer().getGameMode() == GameMode.SURVIVAL)
-            event.setCancelled(true);
+        if (event.getPlayer().getGameMode() == GameMode.SURVIVAL) event.setCancelled(true);
     }
 }

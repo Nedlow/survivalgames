@@ -1,5 +1,6 @@
 package hwnet.survivalgames.commands;
 
+import hwnet.survivalgames.utils.ChatUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -14,43 +15,16 @@ public class Points implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
-        if (args.length != 3) {
-            sender.sendMessage(ChatColor.GRAY + "Usage: /points <add|remove|set> <player> <amount>");
-            return true;
-        }
-        Player p = Bukkit.getPlayer(args[1]);
-        if (args[0].equalsIgnoreCase("add")) {
-            int amount = 0;
-            try {
-                amount = Integer.parseInt(args[2]);
-            } catch (Exception e) {
-                sender.sendMessage(ChatColor.RED + "amount is not a number!");
-            }
+        Player p = (Player) sender;
 
-            PointSystem.addPoints(p, amount);
-        }
-        if (args[0].equalsIgnoreCase("remove")) {
-            int amount = 0;
-            try {
-                amount = Integer.parseInt(args[2]);
-            } catch (Exception e) {
-                sender.sendMessage(ChatColor.RED + "amount is not a number!");
-            }
+        boolean status = PointSystem.load(p);
 
-            PointSystem.removePoints(p, amount);
+        if (status) {
+            ChatUtil.sendMessage(p, "Loaded your stats.");
+        } else {
+            ChatUtil.sendMessage(p, "Could not load your stats.");
         }
-        if (args[0].equalsIgnoreCase("set")) {
-            int amount = 0;
-            try {
-                amount = Integer.parseInt(args[2]);
-            } catch (Exception e) {
-                sender.sendMessage(ChatColor.RED + "amount is not a number!");
-            }
-
-            PointSystem.setPoints(p, amount);
-        }
-
-        return true;
+        return false;
     }
 
 }

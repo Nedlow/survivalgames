@@ -50,8 +50,24 @@ public class ChatUtil {
         for (Map map : Map.getVoteMaps()) {
             ChatUtil.sendMessage(p, Map.getTempId(map) + " > " + map.getMapName() + " [" + VoteHandler.getVotesMap(map) + " votes]");
         }
-        sendMessage(p, ChatColor.translateAlternateColorCodes('&', "&6=============================================="));
+        sendMessage(p, ChatColor.translateAlternateColorCodes('&', "&6================================================="));
 
+    }
+
+    public static String centerText(String str) {
+        int maxLength = 40;
+        int length = str.length();
+        int spaces = maxLength - length;
+        String result = "";
+        String space = "";
+        for (int i = 0; i < spaces / 2; i++) {
+            space += " ";
+        }
+        result = space + str + space;
+        if (result.length() > maxLength) {
+            result = result.substring(0, result.length());
+        }
+        return result;
     }
 
 
@@ -72,7 +88,6 @@ public class ChatUtil {
     public static void setPrefix(String newPrefix) {
         prefix = ChatColor.translateAlternateColorCodes('&', newPrefix) + RESET + GRAY + " ";
     }
-
 
     public static void sendMessage(CommandSender sender, String msg) {
         sender.sendMessage(prefix() + msg);

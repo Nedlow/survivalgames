@@ -34,6 +34,8 @@ lobby: # Lobby spawn location. Setup with /tploc <world> <x> <y> <z> then /setlo
   # Add ITEM IDS to this list, followed by the amount.
   # These items will randomly spawn in chests around the arena
   # Item ID List: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Material.html
+  # Enchantment ID List: https://www.digminecraft.com/lists/enchantment_list_pc.php
+  # Format: ITEM_ID, AMOUNT, ENCHANTMENT_ID, STRENGTH, DISPLAYNAME
 chests:
   contents:
     - APPLE,3

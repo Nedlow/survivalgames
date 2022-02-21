@@ -20,6 +20,8 @@ public class Gamer {
     private UUID uuid;
     private boolean alive = true;
     private boolean spectator = false;
+    private int kills = 0;
+    private int timeAlive = 0;
 
     private static List<Gamer> gamers = new ArrayList<Gamer>();
 
@@ -41,6 +43,27 @@ public class Gamer {
         for (Gamer g : getRealGamers()) {
             g.remove();
         }
+    }
+
+    public int getKills() {
+        return kills;
+    }
+
+    public int getTimeAlive() {
+        return timeAlive;
+    }
+
+    public void addKill() {
+        kills += 1;
+    }
+
+    public void setTimeAlive() {
+        if (GameState.getState() == GameState.ENDGAME) {
+            this.timeAlive = SG.gametime + SG.dm;
+        } else {
+            this.timeAlive = SG.gametime;
+        }
+
     }
 
     public Player getPlayer() {
@@ -106,40 +129,6 @@ public class Gamer {
         for (Gamer g : gamers)
             if (g.isAlive() && !g.isSpectator()) alive.add(g);
         return alive;
-    }
-
-    private static Connection connection = SG.connection;
-
-    public void addWin() {
-        try {
-            PreparedStatement sql = connection.prepareStatement("update ? set wins=wins+1 where uuid=?");
-            sql.setString(1, SG.config.getString("mysql.table"));
-            sql.setString(2, uuid.toString());
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void addKill() {
-        try {
-            PreparedStatement sql = connection.prepareStatement("update ? set kills=kills+1 where uuid=?");
-            sql.setString(1, SG.config.getString("mysql.table"));
-            sql.setString(2, uuid.toString());
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void addDeath() {
-        try {
-            PreparedStatement sql = connection.prepareStatement("update ? set deaths=deaths+1 where uuid=?");
-            sql.setString(1, SG.config.getString("mysql.table"));
-            sql.setString(2, uuid.toString());
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
 }

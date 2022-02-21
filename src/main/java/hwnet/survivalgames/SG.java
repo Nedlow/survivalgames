@@ -3,11 +3,7 @@ package hwnet.survivalgames;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -31,9 +27,7 @@ import org.bukkit.WorldCreator;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Firework;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.meta.FireworkMeta;
@@ -64,6 +58,9 @@ public class SG extends JavaPlugin {
     public static ScoreboardUtil SBU;
     public static SpectatorGUI specGUI;
 
+    private static boolean mysql;
+    private static String sqlite_url;
+
     @Override
     public void onLoad() {
         configs();
@@ -83,6 +80,7 @@ public class SG extends JavaPlugin {
         logger = getLogger();
         clogger = getServer().getConsoleSender();
         pl = this;
+
 
         registerCommands();
         registerPreEvents();
@@ -131,25 +129,36 @@ public class SG extends JavaPlugin {
 
         List<String> motd = new ArrayList<String>();
         motd.add("&6SurvalGames&7: &aIn Lobby");
-        motd.add("&a" + (24 - Gamer.getAliveGamers().size()) + " spots left!");
+        motd.add("&a" + (24 - Gamer.getRealGamers().size()) + " spots left!");
         ChatUtil.setMOTD(motd);
 
+        mysql = config.getConfigurationSection("mysql").getBoolean("enabled");
+        // Open connection to either mysql or sqlite.
+        sqlite_url = SG.pl.getDataFolder() + File.separator + "sqlite.db";
+        openConnection();
+        createTables();
 
-        if (config.getBoolean("mysql.enabled")) {
-            openConnection();
-        }
+        PointSystem.FetchTopWinFromDB();
+        PointSystem.FetchTopKillFromDB();
+        PointSystem.FetchTopDeathsFromDB();
+
         specGUI = new SpectatorGUI();
         registerMenus();
+        ClickSign.importSigns();
+        World w = Bukkit.getWorld("lobby");
+        for (Entity e : w.getEntities()) {
+            if (e instanceof Player || e instanceof ArmorStand) continue;
+            e.remove();
+        }
+
     }
 
     @Override
     public void onDisable() {
-        if (config.getBoolean("mysql.enabled")) {
-            try {
-                if (connection != null && connection.isClosed()) connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        try {
+            if (connection != null && connection.isClosed()) connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         if (config.getBoolean("settings.bungeecord")) {
             for (Player p : Bukkit.getOnlinePlayers()) {
@@ -157,7 +166,6 @@ public class SG extends JavaPlugin {
             }
         }
     }
-
 
     public static boolean checkCanStart() {
         if (Gamer.getRealGamers().size() >= minPlayers) {
@@ -190,8 +198,26 @@ public class SG extends JavaPlugin {
     // MYSQL
     public synchronized static void openConnection() {
         try {
-            connection = DriverManager.getConnection("jdbc:mysql://" + config.getString("mysql.host") + ":" + config.getString("mysql.port") + "/" + config.getString("mysql.database"), config.getString("mysql.username"), config.getString("mysql.password"));
+            if (mysql) {
+                connection = DriverManager.getConnection("jdbc:mysql://" + config.getString("mysql.host") + ":" + config.getString("mysql.port") + "/" + config.getString("mysql.database"), config.getString("mysql.username"), config.getString("mysql.password"));
+            } else {
+                connection = DriverManager.getConnection("jdbc:sqlite:" + sqlite_url);
+                DatabaseMetaData meta = connection.getMetaData();
+                System.out.println("The driver name is " + meta.getDriverName());
+                System.out.println("A new database has been created.");
+            }
         } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized static void createTables() {
+        String sql = "CREATE TABLE IF NOT EXISTS playerdata (uuid text PRIMARY KEY, games integer, wins integer, kills integer, deaths integer, points integer);";
+
+        try {
+            Statement stmt = connection.createStatement();
+            stmt.execute(sql);
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
@@ -247,6 +273,8 @@ public class SG extends JavaPlugin {
         getCommand("softstop").setExecutor(new Stop());
         getCommand("devmode").setExecutor(new Devmode());
         getCommand("resourcepack").setExecutor(new ResourcepackEn());
+        getCommand("setsign").setExecutor(new SignCmd());
+        getCommand("cancel").setExecutor(new CancelCMD());
 
         PluginManager pm = Bukkit.getPluginManager();
         pm.registerEvents(new ChatHandler(), this);
@@ -343,6 +371,13 @@ public class SG extends JavaPlugin {
                 if (pretime == 0) {
                     Game.start();
                 }
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    int minutes = Math.round(pretime / 60);
+                    int seconds = Math.round(pretime % 60);
+                    String min = String.format("%02d", minutes);
+                    String secs = String.format("%02d", seconds);
+                    SBU.updatePregame(p, "Time till start", "Time till start: " + min + ":" + secs, 1);
+                }
                 pretime--;
             }
         }, 0, 20);
@@ -371,7 +406,7 @@ public class SG extends JavaPlugin {
 
             }
         }, 0, 20 * 10);
-        gametime = 0;
+        gametime = -15;
         gamePID = Bukkit.getScheduler().scheduleSyncRepeatingTask(SG.pl, new Runnable() {
             int countdown = 10;
             int dmcountdown = 10;
@@ -380,7 +415,7 @@ public class SG extends JavaPlugin {
 
             @Override
             public void run() {
-                if (gametime <= 15 && gametime > 5) {
+                if (gametime <= 0 && gametime > -10) {
                     //ChatUtil.broadcast("&cStarting in &4&l" + countdown + " &r&cseconds!");
                     for (Gamer gl : Gamer.getGamers()) {
                         gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.BLOCK_NOTE_BLOCK_COW_BELL, 20, 1);
@@ -388,7 +423,7 @@ public class SG extends JavaPlugin {
                     }
                     countdown--;
                 }
-                if (gametime == 16) {
+                if (gametime == 0) {
                     unregisterStartEvents();
                     registerGraceEvents();
                     registerGameEvents();
@@ -403,7 +438,7 @@ public class SG extends JavaPlugin {
                     ChatUtil.broadcast("&eThere is a grace period for 5 seconds.");
                      */
                 }
-                if (gametime == 27) {
+                if (gametime == 10) {
                     unregisterGraceEvents();
                     for (Gamer gl : Gamer.getGamers()) {
                         gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.AMBIENT_CAVE, 20, 1);
@@ -460,6 +495,24 @@ public class SG extends JavaPlugin {
                 }
                 if (gametime == dmtime + 10) {
                     Deathmatch();
+                }
+
+                if (gametime >= 0) {
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        int minutes = Math.round((dmtime - gametime) / 60);
+                        int seconds = Math.round((dmtime - gametime) % 60);
+                        String min = String.format("%02d", minutes);
+                        String secs = String.format("%02d", seconds);
+                        SBU.updateIngame(p, "Time left", "&bTime left: &a" + min + "&b:&a" + secs, 1);
+                    }
+                } else {
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        int minutes = Math.round(dmtime / 60);
+                        int seconds = Math.round(dmtime % 60);
+                        String min = String.format("%02d", minutes);
+                        String secs = String.format("%02d", seconds);
+                        SBU.updateIngame(p, "Time left", "&bTime left: &a" + min + "&b:&a" + secs, 1);
+                    }
                 }
                 gametime++;
             }
@@ -538,7 +591,6 @@ public class SG extends JavaPlugin {
             ChatUtil.sendMessage(sender, "Developer mode disabled. Starting game engine.");
             unregisterDevMode();
             registerPreEvents();
-            startPreGameCountdown();
             devMode = false;
         } else {
             ChatUtil.sendMessage(sender, "Developer mode enabled. Stopping game engine.");
