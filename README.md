@@ -12,14 +12,13 @@ It is made to run one match per server, and is therefore designed to be used wit
 - District mode: Allows for 12 teams of 2 players
 - Configurable chest contents
 - Spectator menu for easy spectator movement across the arena
-- MySQL Support for saving game statistics
+- MySQL and SQLite Support for saving game statistics
 
 
 ### TODO:
 - Sponsorship: Let's spectators buy special items for alive players.
 - Sign-based leaderboard in lobby
 - World Events: Player or location based, eg. zombies or toxic fog.
-- SQLite Support to save game statistics locally
 - Tournament mode: Manually selected maps, time duration and Player whitelist
 ### Setup
 Setting up this plugin is quite simple. All you need is the plugin itself and some arenas (BungeeCord optional)
