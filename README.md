@@ -3,23 +3,25 @@ Rewrite and upgrade of my previous SG plugin.
 
 
 ### Features
-It is made to run one match per server, and is therefore designed to be used with BungeeCord. It can reset without restarting. If BungeeCord is disabled, players will be teleported back to lobby instead of server restart.
+This plugin is designed to run one match at a time, and is therefore designed to be used with BungeeCord. Optionally, the plugin can do a complete gamemode reset without the need of a server restart. It will simply move players back to the lobby while performing the reset tasks in the background.
 - Easy setup
 - Open source
 - BungeeCord support
 - Supports game reset without server shutdown
 - Deathmatch mode to finish maps in reasonable time
 - District mode: Allows for 12 teams of 2 players
-- Configurable chest contents
+- Configurable chest contents with Enchantment and Displayname support
 - Spectator menu for easy spectator movement across the arena
 - MySQL and SQLite Support for saving game statistics
 
 
 ### TODO:
+- Sign-based leaderboard in lobby (IN-PROGRESS)
+- Items with special abilities (IN-PROGRESS)
+- Mulitple chest tiers (Chest=normal,barrel=exclusive)
+- Replacing deathmatch with dynamic world border (Using WorldEdit API)
 - Sponsorship: Let's spectators buy special items for alive players.
-- Sign-based leaderboard in lobby
 - World Events: Player or location based, eg. zombies or toxic fog.
-- Tournament mode: Manually selected maps, time duration and Player whitelist
 ### Setup
 Setting up this plugin is quite simple. All you need is the plugin itself and some arenas (BungeeCord optional)
 1. Copy all arenas into your server root folder, and make sure all the names are short and have no spaces. (sg1,sg2,sge)  
