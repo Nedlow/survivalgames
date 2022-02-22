@@ -4,6 +4,8 @@ main: hwnet.survivalgames.SG
 api-version: 1.18
 authors: [ Nedlow ]
 description: Dedicated Survival Games game mode, written for hwNET.
+depend:
+  - WorldEdit
 commands:
   sg:
   addspawn:

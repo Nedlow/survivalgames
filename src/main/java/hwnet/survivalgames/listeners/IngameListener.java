@@ -1,17 +1,22 @@
 package hwnet.survivalgames.listeners;
 
+import com.sk89q.worldedit.math.BlockVector2;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.math.Vector2;
+import com.sk89q.worldedit.regions.CylinderRegion;
+import com.sk89q.worldedit.regions.selector.CuboidRegionSelector;
 import hwnet.survivalgames.handlers.*;
+import hwnet.survivalgames.utils.GameBoard;
 import hwnet.survivalgames.utils.LocUtil;
 import org.bukkit.*;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.*;
 
 import hwnet.survivalgames.SG;
 import hwnet.survivalgames.events.GamerDeathEvent;
@@ -27,13 +32,37 @@ import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class IngameListener implements Listener {
 
 
+    private static List<EntityType> moblist = new ArrayList<>();
+
+    public static void addMobsToList() {
+        moblist.add(EntityType.CREEPER);
+        moblist.add(EntityType.ZOMBIE);
+        moblist.add(EntityType.CAVE_SPIDER);
+        moblist.add(EntityType.SPIDER);
+        moblist.add(EntityType.WITCH);
+    }
+
     @EventHandler(priority = EventPriority.NORMAL)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
-        if (!(event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.DISPENSE_EGG)) event.setCancelled(true);
+        //if (!(event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.EGG)) event.setCancelled(true);
+    }
+
+
+    @EventHandler
+    public void onMobEgg(PlayerEggThrowEvent e) {
+        ItemStack is = e.getEgg().getItem();
+        if (is.getItemMeta().getDisplayName().contains("Mob")) {
+            Random rand = new Random();
+            int random = rand.nextInt(moblist.size());
+            e.setHatching(true);
+            e.setHatchingType(moblist.get(random));
+            e.getEgg().getLocation().getWorld().spawnEntity(e.getEgg().getLocation(), moblist.get(random));
+        }
     }
 
     @EventHandler
@@ -81,6 +110,10 @@ public class IngameListener implements Listener {
             }
             SG.specGUI.getYourInventory().clear();
         }
+
+        if (Bukkit.getOnlinePlayers().size() < 1) {
+            Game.cancelGame();
+        }
     }
 
 
@@ -118,6 +151,7 @@ public class IngameListener implements Listener {
                 if (e.getDamager() instanceof Player) {
                     Player d = (Player) e.getDamager();
                     PointSystem.addKill(d);
+                    Gamer.getGamer(d.getUniqueId()).addKill();
 
                     // Point System
                     PointSystem.addPoints(p, SG.config.getInt("points.lose"));
@@ -133,6 +167,10 @@ public class IngameListener implements Listener {
     public void onNaturalDamage(EntityDamageEvent e) {
         if (e.getEntity() instanceof Player) {
             Player p = (Player) e.getEntity();
+            if (!Gamer.getGamer(p.getUniqueId()).isAlive()) {
+                e.setCancelled(true);
+                return;
+            }
             if (p.getHealth() - e.getFinalDamage() < 1) {
                 e.setCancelled(true);
                 handleDeath(p);
@@ -141,10 +179,34 @@ public class IngameListener implements Listener {
     }
 
     @EventHandler
+    public void onMobTarget(EntityTargetLivingEntityEvent e) {
+        Entity target = e.getTarget();
+        Entity entity = e.getEntity();
+
+        if (target instanceof Player) {
+            Player p = (Player) target;
+            if (!Gamer.getGamer(p.getUniqueId()).isAlive()) {
+                e.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onLeaveClick(PlayerInteractEvent e) {
+        if (e.getItem() == null) return;
+        if (e.getItem().getType() == Material.PLAYER_HEAD) {
+            SG.specGUI.open(e.getPlayer());
+        }
+    }
+
+    @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         if (e.getCurrentItem() == null) return;
         if ((e.getCurrentItem().getType() == Material.COMPASS) || (e.getCurrentItem().getType() == Material.PLAYER_HEAD)) {
             e.setCancelled(true);
+        }
+        if (e.getCurrentItem().getType() == Material.PLAYER_HEAD) {
+            SG.specGUI.open((Player) e.getWhoClicked());
         }
     }
 
@@ -168,6 +230,7 @@ public class IngameListener implements Listener {
         p.setHealth(20);
         for (ItemStack is : p.getInventory().getContents()) {
             if (is == null) continue;
+            if (is.getType() == Material.COMPASS) continue;
             p.getWorld().dropItemNaturally(p.getLocation(), is);
         }
 
@@ -177,8 +240,12 @@ public class IngameListener implements Listener {
         }
         SG.clearPlayer(p);
         PointSystem.addDeath(p);
-        p.setGameMode(GameMode.SPECTATOR);
-        p.setFlySpeed(0.2F);
+        p.setGameMode(GameMode.ADVENTURE);
+        for (Gamer gl : Gamer.getAliveGamers()) {
+            gl.getPlayer().hidePlayer(SG.pl, p);
+        }
+        p.setAllowFlight(true);
+        p.setFlying(true);
         // Player Menu item
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         ItemMeta meta = head.getItemMeta();
@@ -191,6 +258,8 @@ public class IngameListener implements Listener {
 
         Gamer g = Gamer.getGamer(p);
         g.setAlive(false);
+        g.setTimeAlive();
+        GameBoard.getBoard(p).intiliazeDeath();
 
         for (Player pl : Bukkit.getOnlinePlayers()) {
             pl.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 20, 1);
@@ -207,7 +276,7 @@ public class IngameListener implements Listener {
                 motd.add("&b" + Gamer.getAliveGamers().size() + "&7/&b24 tributes left!");
                 ChatUtil.setMOTD(motd);
                 for (Player po : t.getPlayers()) {
-                    po.setSpectatorTarget(null);
+                    po.setGameMode(GameMode.ADVENTURE);
                 }
                 if (Team.getAliveTeams().size() == 1) {
                     Game.win(Team.getAliveTeams().get(0), null);
@@ -216,6 +285,7 @@ public class IngameListener implements Listener {
                 }
             }
             if (Team.getTeam(p).isAlive()) {
+                p.setGameMode(GameMode.SPECTATOR);
                 p.setSpectatorTarget(Team.getTeam(p).getAlivePlayers().get(0));
             }
         } else {

@@ -6,6 +6,7 @@ import java.util.List;
 
 import hwnet.survivalgames.SG;
 import hwnet.survivalgames.utils.ChatUtil;
+import hwnet.survivalgames.utils.GameBoard;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -73,7 +74,8 @@ public class Team {
     }
 
     public void add(Player p) {
-        SG.SBU.addToTeam(p, this.getName());
+        //SG.SBU.addToTeam(p, this.getName());
+        GameBoard.addToTeam(p, this.getName());
         pTeams.put(p.getName(), this);
     }
 
@@ -81,7 +83,8 @@ public class Team {
         if (!hasTeam(p))
             return false;
         pTeams.remove(p.getName());
-        SG.SBU.removeFromTeam(p, this.getName());
+        //SG.SBU.removeFromTeam(p, this.getName());
+        GameBoard.removeFromTeam(p, this.getName());
         return true;
     }
 

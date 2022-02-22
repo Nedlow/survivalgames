@@ -1,14 +1,11 @@
 package hwnet.survivalgames.handlers;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import hwnet.survivalgames.utils.GameBoard;
 import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 
 import hwnet.survivalgames.GameState;
@@ -55,13 +52,14 @@ public class Gamer {
 
     public void addKill() {
         kills += 1;
+        GameBoard.getBoard(Bukkit.getPlayer(uuid)).update(GameBoard.ScoreType.KILLS, "Kills", "&bKills: &a" + kills);
     }
 
     public void setTimeAlive() {
         if (GameState.getState() == GameState.ENDGAME) {
-            this.timeAlive = SG.gametime + SG.dm;
+            this.timeAlive = new Integer(SG.gametime + SG.dm);
         } else {
-            this.timeAlive = SG.gametime;
+            this.timeAlive = new Integer(SG.gametime);
         }
 
     }

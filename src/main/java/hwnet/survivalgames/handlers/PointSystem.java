@@ -1,5 +1,6 @@
 package hwnet.survivalgames.handlers;
 
+import java.awt.*;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -174,6 +175,13 @@ public class PointSystem {
         }
     }
 
+    public static void initializeTopStats() {
+        FetchTopWinFromDB();
+        FetchTopKillFromDB();
+        FetchTopDeathsFromDB();
+        FetchTopGamesFromDB();
+    }
+
     public static void FetchTopWinFromDB() {
         String sql = "Select uuid, wins from playerdata order by wins desc limit 1";
         try {
@@ -182,7 +190,6 @@ public class PointSystem {
 
             topWin = UUID.fromString(rs.getString("uuid"));
             wins.put(topWin, rs.getInt("wins"));
-            ChatUtil.sendMessage(SG.cmd, "Top winner uuid: " + wins.get(topWin));
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -209,6 +216,19 @@ public class PointSystem {
 
             deaths.put(UUID.fromString(rs.getString("uuid")), rs.getInt("deaths"));
             topDeath = UUID.fromString(rs.getString("uuid"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void FetchTopGamesFromDB() {
+        String sql = "Select uuid, games from playerdata order by games desc limit 1";
+        try {
+            Statement stmt = SG.connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+
+            games.put(UUID.fromString(rs.getString("uuid")), rs.getInt("games"));
+            topGames = UUID.fromString(rs.getString("uuid"));
         } catch (SQLException e) {
             e.printStackTrace();
         }

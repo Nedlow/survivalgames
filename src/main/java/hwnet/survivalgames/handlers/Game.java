@@ -4,16 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import hwnet.survivalgames.utils.ResetMap;
-import hwnet.survivalgames.utils.ScoreboardUtil;
+import hwnet.survivalgames.utils.*;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 
 import hwnet.survivalgames.GameState;
 import hwnet.survivalgames.SG;
 import hwnet.survivalgames.events.GameStartEvent;
-import hwnet.survivalgames.utils.ChatUtil;
-import hwnet.survivalgames.utils.LocUtil;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -86,7 +83,7 @@ public class Game {
                 Player p = pla.getPlayer();
 
                 SG.clearPlayer(p);
-                SG.SBU.swapToIngame(p);
+                GameBoard.getBoard(p).intializeGame();
                 if (pla.isSpectator()) {
                     p.teleport(Map.getActiveMap().getCenterLocation());
                     p.setGameMode(GameMode.SPECTATOR);
@@ -112,7 +109,7 @@ public class Game {
                     i++;
                 }
             }
-            SG.SBU.updateScoreboard();
+            //SG.SBU.updateScoreboard();
             Bukkit.getScheduler().scheduleSyncDelayedTask(SG.pl, new Runnable() {
                 @Override
                 public void run() {
@@ -317,9 +314,15 @@ public class Game {
             else {
                 pl.setGameMode(GameMode.ADVENTURE);
                 SG.clearPlayer(pl);
-                pl.showPlayer(SG.pl, pl);
                 LocUtil.teleportToLobby(pl);
             }
+        }
+
+        for (Gamer vanish : Gamer.getGamers()) {
+            if (!vanish.isAlive())
+                for (Player plo : Bukkit.getOnlinePlayers())
+                    plo.showPlayer(SG.pl, vanish.getPlayer());
+
         }
 
         // CLEAR ALL DATA (VOTES, RANDOM MAP IDS, GAMERS '
@@ -329,7 +332,7 @@ public class Game {
         Bukkit.getScheduler().cancelTask(SG.gamePID);
         Bukkit.getScheduler().cancelTask(SG.compassPID);
         Gamer.clearRealGamers();
-        if (SG.districts_mode) ScoreboardUtil.resetScoreboard();
+        GameBoard.resetScoreboard();
         Team.clearInfo();
         VoteHandler.clearVotes();
 
@@ -372,6 +375,7 @@ public class Game {
         PointSystem.FetchTopKillFromDB();
         PointSystem.FetchTopDeathsFromDB();
 
+        //TODO: Finalize signs
         ClickSign.updateSigns();
 
     }

@@ -1,6 +1,7 @@
 package hwnet.survivalgames.listeners;
 
 import hwnet.survivalgames.handlers.*;
+import hwnet.survivalgames.utils.GameBoard;
 import hwnet.survivalgames.utils.LocUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -52,7 +53,11 @@ public class JoinListener implements Listener {
 
 
         // SCOREBOARD
-        SG.SBU.setScoreboard(p);
+        if (!GameBoard.hasBoard(p)) {
+            GameBoard gb = new GameBoard(p);
+            gb.intializeLobby();
+        }
+
 
         p.setGameMode(GameMode.ADVENTURE);
         Gamer g = Gamer.getGamer(p);
@@ -76,8 +81,9 @@ public class JoinListener implements Listener {
         ChatUtil.sendMessage(p, "We recommend the use of the SapixCraft resource-pack. To use this pack, use /resourcepack enable");
 
         List<String> motd = new ArrayList<String>();
-        motd.add("&6SurvalGames&7: &aIn Lobby");
-        motd.add("&a" + (24 - Gamer.getRealGamers().size()) + " spots left!");
+        // SPECIAL CHARS: ⚝ ✰ ✩
+        motd.add(ChatUtil.centerText("&d&l✩ &r&6SurvivalGames: &aIn Lobby &d&l✩", 69));
+        motd.add(ChatUtil.centerText("&e▶ &r&a" + (24 - Gamer.getRealGamers().size()) + " spots left! &e◀", 59));
         ChatUtil.setMOTD(motd);
 
         if (SG.config.getBoolean("settings.bungeecord")) {

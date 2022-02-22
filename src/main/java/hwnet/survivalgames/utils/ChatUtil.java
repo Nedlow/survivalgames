@@ -31,7 +31,11 @@ public class ChatUtil {
     }
 
     public static void setMOTD(List<String> newMOTD) {
-        String build = String.join("\n", newMOTD);
+        List<String> centered = new ArrayList<>();
+        for (String lines : newMOTD) {
+            centered.add(ChatUtil.centerText(lines, 59));
+        }
+        String build = String.join("\n", centered);
         MOTD = ChatColor.translateAlternateColorCodes('&', build);
     }
 
@@ -44,6 +48,14 @@ public class ChatUtil {
         return chatFormat;
     }
 
+    public static String formatTime(int timeInSeconds) {
+        int minutes = Math.round(timeInSeconds / 60);
+        int seconds = Math.round(timeInSeconds % 60);
+        String min = String.format("%02d", minutes);
+        String secs = String.format("%02d", seconds);
+        return min + ":" + secs;
+    }
+
     public static void sendVoteMenu(Player p) {
         sendMessage(p, ChatColor.translateAlternateColorCodes('&', "&6============= &bSurvivalGames: &eVoting &6============="));
         sendMessage(p, "Vote: [/vote <id>]");
@@ -54,9 +66,24 @@ public class ChatUtil {
 
     }
 
-    public static String centerText(String str) {
-        int maxLength = 40;
+    public static String centerText(String str, int maxLength) {
+        str = ChatColor.translateAlternateColorCodes('&', str);
         int length = str.length();
+        int spaces = maxLength - length;
+        String result = "";
+        String space = "";
+        for (int i = 0; i < spaces / 2; i++) {
+            space += " ";
+        }
+        result = space + str + space;
+        if (result.length() > maxLength) {
+            result = result.substring(0, result.length());
+        }
+        return result;
+    }
+
+    public static String centerText(String str, int length, int maxLength) {
+        str = ChatColor.translateAlternateColorCodes('&', str);
         int spaces = maxLength - length;
         String result = "";
         String space = "";

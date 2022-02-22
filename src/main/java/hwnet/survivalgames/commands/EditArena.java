@@ -48,10 +48,11 @@ public class EditArena implements CommandExecutor {
             }
         } else if (label.equalsIgnoreCase("savearena")) {
             p.getWorld().save();
-            ResetMap.createBackup(Map.getMap(p.getWorld().getName()), SG.pl, true);
+            Map map = Map.getMap(p.getLocation().getWorld().getName());
+            ResetMap.createBackup(map, SG.pl, true);
 
             LocUtil.teleportToLobby(p);
-            String msg = "&aSaved arena &f'&a" + args[0] + "&f'";
+            String msg = "&aSaved arena &f'&a" + map.getMapName() + "&f'";
             ChatUtil.sendMessage(p, msg);
         }
         return false;

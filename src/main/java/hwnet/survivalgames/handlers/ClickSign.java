@@ -1,49 +1,54 @@
 package hwnet.survivalgames.handlers;
 
+import hwnet.survivalgames.SG;
 import hwnet.survivalgames.SettingsManager;
+import hwnet.survivalgames.utils.ChatUtil;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class ClickSign {
 
     private static List<ClickSign> signs = new ArrayList<>();
     private SignType type;
     private Location location;
+    private UUID uuid;
 
     private static enum SignType {
         TOP_KILLS, TOP_WINS, TOP_GAMES, TOP_DEATHS, TOP_POINTS;
     }
 
     public static SignType getType(String type) {
+
+
         switch (type.toLowerCase()) {
             case "wins":
-            case "TOP_WINS":
+            case "top_wins":
                 return SignType.TOP_WINS;
             case "deaths":
-            case "TOP_DEATHS":
+                return SignType.TOP_WINS;
+            case "top_deaths":
                 return SignType.TOP_DEATHS;
             case "points":
-            case "TOP_POINTS":
+            case "top_points":
                 return SignType.TOP_POINTS;
             case "games":
-            case "TOP_GAMES":
+            case "top_games":
                 return SignType.TOP_GAMES;
-            case "TOP_KILLS":
+            case "top_kills":
             default:
                 return SignType.TOP_KILLS;
         }
     }
 
 
-    public ClickSign(SignType type, Location location) {
+    public ClickSign(UUID uuid, SignType type, Location location) {
         this.location = location;
         this.type = type;
         signs.add(this);
@@ -53,12 +58,18 @@ public class ClickSign {
         return this.type;
     }
 
+    public UUID getUUID() {
+        return this.uuid;
+    }
+
     public Location getLocation() {
         return this.location;
     }
 
     public void remove() {
+        SettingsManager.getInstance().getData().set("signs." + getUUID(), null);
         signs.remove(this);
+
     }
 
     public static ClickSign getSign(Location loc) {
@@ -90,14 +101,14 @@ public class ClickSign {
             sign.setLine(2, ChatColor.GREEN + "" + ChatColor.BOLD + String.valueOf(PointSystem.getWins(PointSystem.topWin)));
         } else if (getType() == SignType.TOP_KILLS) {
             Player p = (Player) Bukkit.getOfflinePlayer(PointSystem.topKill);
-            sign.setLine(0, ChatColor.GOLD + "TOP 1 KILLS");
+            sign.setLine(0, ChatColor.GOLD + "" + ChatColor.BOLD + "TOP KILLS");
             sign.setLine(1, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + p.getName());
-            sign.setLine(2, ChatColor.GREEN + "" + ChatColor.BOLD + String.valueOf(PointSystem.getWins(PointSystem.topKill)));
+            sign.setLine(2, ChatColor.GREEN + "" + ChatColor.BOLD + String.valueOf(PointSystem.getKills(PointSystem.topKill)));
         } else if (getType() == SignType.TOP_GAMES) {
             Player p = (Player) Bukkit.getOfflinePlayer(PointSystem.topGames);
-            sign.setLine(0, ChatColor.GOLD + "TOP 1 KILLS");
+            sign.setLine(0, ChatColor.GOLD + "" + ChatColor.BOLD + "TOP GAMES");
             sign.setLine(1, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + p.getName());
-            sign.setLine(2, ChatColor.GREEN + "" + ChatColor.BOLD + String.valueOf(PointSystem.getWins(PointSystem.topGames)));
+            sign.setLine(2, ChatColor.GREEN + "" + ChatColor.BOLD + String.valueOf(PointSystem.getGames(PointSystem.topGames)));
         }
         sign.update(true);
     }
@@ -118,8 +129,17 @@ public class ClickSign {
                 double y = data.getDouble("signs." + uuid + ".location.y");
                 double z = data.getDouble("signs." + uuid + ".location.z");
                 Location loc = new Location(w, x, y, z);
-                new ClickSign(type, loc);
+                if (!(loc.getBlock().getState() instanceof org.bukkit.block.Sign)) {
+                    data.set("signs." + uuid, null);
+                    SettingsManager.getInstance().saveData();
+                    ChatUtil.sendMessage(SG.cmd, "Deleted a sign");
+                } else {
+                    ClickSign s = new ClickSign(UUID.fromString(uuid), type, loc);
+                    ChatUtil.sendMessage(SG.cmd, "Added sign with type " + s.getType().toString());
+                }
             }
+        } else {
+            ChatUtil.sendMessage(SG.cmd, "No signs created.");
         }
     }
 }

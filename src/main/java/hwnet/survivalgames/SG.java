@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.logging.Logger;
 
+import com.sk89q.worldedit.WorldEdit;
 import hwnet.survivalgames.commands.*;
 import hwnet.survivalgames.handlers.*;
 import hwnet.survivalgames.handlers.Team;
@@ -16,10 +17,7 @@ import hwnet.survivalgames.listeners.*;
 import hwnet.survivalgames.utils.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Color;
-import org.bukkit.FireworkEffect;
 import org.bukkit.GameMode;
-import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.WorldBorder;
@@ -30,14 +28,11 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.*;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 
 public class SG extends JavaPlugin {
-
-    public static int cdId;
 
     public static Connection connection;
 
@@ -55,7 +50,6 @@ public class SG extends JavaPlugin {
     public static Logger logger;
     public static ConsoleCommandSender clogger;
 
-    public static ScoreboardUtil SBU;
     public static SpectatorGUI specGUI;
 
     private static boolean mysql;
@@ -85,7 +79,6 @@ public class SG extends JavaPlugin {
         registerCommands();
         registerPreEvents();
 
-        SBU = new ScoreboardUtil();
         devMode = false;
 
         minPlayers = getConfig().getConfigurationSection("settings").getInt("minPlayers");
@@ -93,7 +86,8 @@ public class SG extends JavaPlugin {
         ChatUtil.setChatFormat(SG.config.getConfigurationSection("settings.chat").getString("format"));
         maxPlayers = 24;
 
-        districts_mode = config.getBoolean("settings.district_mode");
+        districts_mode = config.getBoolean("settings.districts_mode");
+        devMode = config.getBoolean("settings.devmode");
         if (districts_mode) registerDistricts();
         if (config.getBoolean("lobby.enabled")) {
             Bukkit.getWorld(config.getString("lobby.world")).setSpawnLocation(LocUtil.getLobbyLocation());
@@ -128,8 +122,9 @@ public class SG extends JavaPlugin {
         }
 
         List<String> motd = new ArrayList<String>();
-        motd.add("&6SurvalGames&7: &aIn Lobby");
-        motd.add("&a" + (24 - Gamer.getRealGamers().size()) + " spots left!");
+        // SPECIAL CHARS: ⚝ ✰ ✩
+        motd.add(ChatUtil.centerText("&d&l✩ &r&6SurvivalGames: &aIn Lobby &d&l✩", 69));
+        motd.add(ChatUtil.centerText("&e▶ &r&a" + (24 - Gamer.getRealGamers().size()) + " spots left! &e◀", 59));
         ChatUtil.setMOTD(motd);
 
         mysql = config.getConfigurationSection("mysql").getBoolean("enabled");
@@ -142,15 +137,23 @@ public class SG extends JavaPlugin {
         PointSystem.FetchTopKillFromDB();
         PointSystem.FetchTopDeathsFromDB();
 
+
+        // Temporary mob list
+        IngameListener.addMobsToList();
+
         specGUI = new SpectatorGUI();
         registerMenus();
+        PointSystem.initializeTopStats();
         ClickSign.importSigns();
+        ClickSign.updateSigns();
         World w = Bukkit.getWorld("lobby");
         for (Entity e : w.getEntities()) {
             if (e instanceof Player || e instanceof ArmorStand) continue;
             e.remove();
         }
-
+        if (devMode) {
+            devMode(cmd, true);
+        }
     }
 
     @Override
@@ -203,8 +206,8 @@ public class SG extends JavaPlugin {
             } else {
                 connection = DriverManager.getConnection("jdbc:sqlite:" + sqlite_url);
                 DatabaseMetaData meta = connection.getMetaData();
-                System.out.println("The driver name is " + meta.getDriverName());
-                System.out.println("A new database has been created.");
+                ChatUtil.sendMessage(cmd, "The driver name is " + meta.getDriverName());
+                ChatUtil.sendMessage(cmd, "Connection established.");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -365,18 +368,19 @@ public class SG extends JavaPlugin {
                 }
 
 
-                if (pretime == 45 || pretime == 30 || pretime == 15 || (pretime >= 0 && pretime <= 10)) {
+                if (pretime == 45 || pretime == 30 || pretime == 15) {
                     ChatUtil.broadcast("Game starting in " + pretime + " seconds.");
+                }
+                if ((pretime >= 0 && pretime <= 10)) {
+                    for (Gamer gl : Gamer.getGamers()) {
+                        gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&eGame Starting!"), ChatColor.translateAlternateColorCodes('&', ("&a" + String.valueOf(pretime))), 10, 15, 10);
+                    }
                 }
                 if (pretime == 0) {
                     Game.start();
                 }
                 for (Player p : Bukkit.getOnlinePlayers()) {
-                    int minutes = Math.round(pretime / 60);
-                    int seconds = Math.round(pretime % 60);
-                    String min = String.format("%02d", minutes);
-                    String secs = String.format("%02d", seconds);
-                    SBU.updatePregame(p, "Time till start", "Time till start: " + min + ":" + secs, 1);
+                    GameBoard.getBoard(p).update(GameBoard.ScoreType.TIME_LOBBY, "Time till start", "Time till start: " + ChatUtil.formatTime(pretime));
                 }
                 pretime--;
             }
@@ -423,7 +427,7 @@ public class SG extends JavaPlugin {
                     }
                     countdown--;
                 }
-                if (gametime == 0) {
+                if (gametime == 1) {
                     unregisterStartEvents();
                     registerGraceEvents();
                     registerGameEvents();
@@ -438,7 +442,7 @@ public class SG extends JavaPlugin {
                     ChatUtil.broadcast("&eThere is a grace period for 5 seconds.");
                      */
                 }
-                if (gametime == 10) {
+                if (gametime == 11) {
                     unregisterGraceEvents();
                     for (Gamer gl : Gamer.getGamers()) {
                         gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.AMBIENT_CAVE, 20, 1);
@@ -457,7 +461,6 @@ public class SG extends JavaPlugin {
                     ChatUtil.broadcast("&cDeathmatch in &4&l1 &cminute. Players will be teleported soon.");
                 }
                 if (gametime == dmtime) {
-
                     w.setStorm(false);
                     w.setClearWeatherDuration(3600);
                     w.setTime(11000);
@@ -486,11 +489,13 @@ public class SG extends JavaPlugin {
                 }
 
                 if (gametime >= (dmtime - 10) && gametime < dmtime) {
+                    /*
                     for (Gamer gl : Gamer.getGamers()) {
                         gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.BLOCK_NOTE_BLOCK_COW_BELL, 20, 1);
                         gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&4") + String.valueOf(dmcountdown), "", 5, 10, 5);
                     }
-                    //ChatUtil.broadcast("&cDeathmatch in &4&l" + dmcountdown + " &cseconds.");
+                    */
+                    ChatUtil.broadcast("&cDeathmatch in &4&l" + dmcountdown + " &cseconds.");
                     dmcountdown--;
                 }
                 if (gametime == dmtime + 10) {
@@ -499,19 +504,11 @@ public class SG extends JavaPlugin {
 
                 if (gametime >= 0) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        int minutes = Math.round((dmtime - gametime) / 60);
-                        int seconds = Math.round((dmtime - gametime) % 60);
-                        String min = String.format("%02d", minutes);
-                        String secs = String.format("%02d", seconds);
-                        SBU.updateIngame(p, "Time left", "&bTime left: &a" + min + "&b:&a" + secs, 1);
+                        GameBoard.getBoard(p).update(GameBoard.ScoreType.TIME_GAME, "Time left", "&bTime left: &a" + ChatUtil.formatTime(dmtime - gametime));
                     }
                 } else {
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        int minutes = Math.round(dmtime / 60);
-                        int seconds = Math.round(dmtime % 60);
-                        String min = String.format("%02d", minutes);
-                        String secs = String.format("%02d", seconds);
-                        SBU.updateIngame(p, "Time left", "&bTime left: &a" + min + "&b:&a" + secs, 1);
+                        GameBoard.getBoard(p).update(GameBoard.ScoreType.TIME_GAME, "Time left", "&bTime left: &a" + ChatUtil.formatTime(dmtime));
                     }
                 }
                 gametime++;
@@ -569,6 +566,7 @@ public class SG extends JavaPlugin {
         }, 0, 20);
     }
 
+
     public static void clearPlayer(Player p) {
         p.getInventory().clear();
         p.getInventory().setHelmet(null);
@@ -586,27 +584,43 @@ public class SG extends JavaPlugin {
     }
 
 
-    public static void devMode(CommandSender sender) {
-        if (devMode) {
+    public static void devMode(CommandSender sender, boolean override) {
+        if (devMode && !override) {
             ChatUtil.sendMessage(sender, "Developer mode disabled. Starting game engine.");
+            config.set("settings.devmode", false);
+            pl.saveConfig();
             unregisterDevMode();
             registerPreEvents();
+
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                // SCOREBOARD
+                if (!GameBoard.hasBoard(p)) {
+                    GameBoard gb = new GameBoard(p);
+                    gb.intializeLobby();
+                }
+            }
+
             devMode = false;
         } else {
             ChatUtil.sendMessage(sender, "Developer mode enabled. Stopping game engine.");
-            unregisterGraceEvents();
-            unregisterStartEvents();
-            unregisterGameEvents();
+            config.set("settings.devmode", true);
+            pl.saveConfig();
             unRegisterPreEvents();
-            Bukkit.getWorld(SG.config.getString("lobby.world")).setClearWeatherDuration(3600 * 20);
+            unregisterStartEvents();
+            unregisterGraceEvents();
+            unregisterGameEvents();
             registerDevMode();
+            Bukkit.getWorld(SG.config.getString("lobby.world")).setClearWeatherDuration(3600 * 20);
             Bukkit.getScheduler().cancelTask(PreGamePID);
             List<String> motd = new ArrayList<>();
-            motd.add("&6         Survival Games&7: &cDeveloper Mode");
-            motd.add("&5                   Staff-only");
+            motd.add("&6Survival Games&7: &cDeveloper Mode");
+            motd.add("&5-= Staff-Only =-");
             ChatUtil.setMOTD(motd);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                // SCOREBOARD
+                p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+            }
             devMode = true;
-
         }
     }
 }

@@ -17,7 +17,7 @@ public class Devmode implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
         if (sender.hasPermission("sg.admin")) {
-            SG.devMode(sender);
+            SG.devMode(sender, false);
         } else {
             ChatUtil.sendMessage(sender, ChatColor.RED + "No permission.");
         }

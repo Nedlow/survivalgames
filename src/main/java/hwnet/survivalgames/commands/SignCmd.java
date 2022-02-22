@@ -38,7 +38,7 @@ public class SignCmd implements CommandExecutor {
 
         Block target = getTargetBlock(p, 10);
 
-        if (target.getType() != Material.OAK_WALL_SIGN) {
+        if (!(target.getState() instanceof org.bukkit.block.Sign)) {
             ChatUtil.sendMessage(p, "Please look at a sign when performing this command!");
             return true;
         }
@@ -47,12 +47,13 @@ public class SignCmd implements CommandExecutor {
             ClickSign.getSign(target.getLocation()).remove();
             ChatUtil.sendMessage(p, "Replacing current clicksign with a new one.");
         }
-        ClickSign csign = new ClickSign(ClickSign.getType(args[0]), target.getLocation());
+        UUID randomUUID = UUID.randomUUID();
+        ClickSign csign = new ClickSign(randomUUID, ClickSign.getType(args[0]), target.getLocation());
         ChatUtil.sendMessage(p, "Location: " + target.getLocation().getX() + " " + target.getLocation().getY() + " " + target.getLocation().getZ());
         csign.setSignText();
 
         FileConfiguration data = SettingsManager.getInstance().getData();
-        UUID randomUUID = UUID.randomUUID();
+
         data.set("signs." + randomUUID + ".type", String.valueOf(csign.getType()));
         data.set("signs." + randomUUID + ".location.world", csign.getLocation().getWorld().getName());
         data.set("signs." + randomUUID + ".location.x", csign.getLocation().getX());
