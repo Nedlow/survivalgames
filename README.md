@@ -16,10 +16,12 @@ It is made to run one match per server, and is therefore designed to be used wit
 
 
 ### TODO:
+- Sign-based leaderboard in lobby (IN-PROGRESS)
+- Items with special abilities (IN-PROGRESS)
+- Mulitple chest tiers (Chest=normal,barrel=exclusive)
+- Replacing deathmatch with dynamic world border (Using WorldEdit API)
 - Sponsorship: Let's spectators buy special items for alive players.
-- Sign-based leaderboard in lobby
 - World Events: Player or location based, eg. zombies or toxic fog.
-- Tournament mode: Manually selected maps, time duration and Player whitelist
 ### Setup
 Setting up this plugin is quite simple. All you need is the plugin itself and some arenas (BungeeCord optional)
 1. Copy all arenas into your server root folder, and make sure all the names are short and have no spaces. (sg1,sg2,sge)  
