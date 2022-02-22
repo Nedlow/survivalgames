@@ -6,7 +6,7 @@
 
     <groupId>hwNET</groupId>
     <artifactId>SurvivalGames</artifactId>
-    <version>1.0 Rewrite</version>
+    <version>1.0 Beta</version>
     <packaging>jar</packaging>
 
     <name>SurvivalGames</name>

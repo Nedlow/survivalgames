@@ -39,7 +39,7 @@ public class LocUtil {
     }
 
     public static void teleportToGame(Player p, int i) {
-        p.teleport(Map.getActiveMap().getSpawn(i));
+        p.teleport(Map.getActiveMap().getSpawns().get(i));
     }
 
 }

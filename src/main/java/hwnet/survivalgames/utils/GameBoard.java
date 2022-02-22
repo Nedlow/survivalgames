@@ -1,8 +1,9 @@
 package hwnet.survivalgames.utils;
 
 import hwnet.survivalgames.SG;
-import hwnet.survivalgames.handlers.Game;
-import hwnet.survivalgames.handlers.Gamer;
+import hwnet.survivalgames.handlers.*;
+import net.md_5.bungee.api.chat.*;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -18,13 +19,14 @@ import java.util.List;
 public class GameBoard {
 
     private static List<GameBoard> boardList = new ArrayList<>();
+    private List<Score> mapScores = new ArrayList<>();
     private Scoreboard board;
     private Objective lobby, ingame;
-    private Score lobby_timeleft, ingame_timeleft, kills, timealive;
+    private Score lobby_timeleft, ingame_timeleft, kills, timealive, stats_games, stats_wins;
     private Player player;
 
     public static enum ScoreType {
-        TIME_LOBBY, TIME_GAME, KILLS;
+        TIME_LOBBY, TIME_GAME, KILLS, VOTES;
     }
 
     public GameBoard(Player player) {
@@ -53,6 +55,11 @@ public class GameBoard {
         else return true;
     }
 
+    public void remove() {
+        player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+        boardList.remove(this);
+    }
+
     public Scoreboard getBoard() {
         return board;
     }
@@ -60,6 +67,7 @@ public class GameBoard {
     public Player getPlayer() {
         return player;
     }
+
 
     public static void addToTeam(Player p, String teamName) {
         for (GameBoard board : boardList) {
@@ -78,9 +86,17 @@ public class GameBoard {
     public void intializeLobby() {
         lobby = board.registerNewObjective(shortName("P-" + player.getName()), "dummy", ChatColor.translateAlternateColorCodes('&', ChatUtil.centerText("&r&4=== &6&lSurvival Games: In Lobby &r&4===", 40)));
         lobby.setDisplaySlot(DisplaySlot.SIDEBAR);
-        lobby.getScore("").setScore(2);
-        lobby_timeleft = lobby.getScore("Time till start: ");
-        lobby_timeleft.setScore(1);
+
+
+        lobby.getScore("").setScore(11);
+        lobby_timeleft = lobby.getScore("Time till start: " + ChatUtil.formatTime(SG.pretime));
+        lobby_timeleft.setScore(10);
+        lobby.getScore(" ").setScore(9);
+        lobby.getScore(ChatColor.translateAlternateColorCodes('&', "&b&lStats for &a&l" + player.getName() + ":")).setScore(8);
+        stats_wins = lobby.getScore(ChatColor.translateAlternateColorCodes('&', "&b - Wins: &a") + PointSystem.getWins(player.getUniqueId()));
+        stats_wins.setScore(7);
+        stats_games = lobby.getScore(ChatColor.translateAlternateColorCodes('&', "&b - Games: &a") + PointSystem.getGames(player.getUniqueId()));
+        stats_games.setScore(6);
     }
 
     public void intializeGame() {
@@ -102,10 +118,9 @@ public class GameBoard {
 
     public void intiliazeDeath() {
         // Time alive
-        timealive = ingame.getScore(ChatColor.translateAlternateColorCodes('&', "&bTime alive: &a0" + Gamer.getGamer(player.getUniqueId()).getTimeAlive()));
+        timealive = ingame.getScore(ChatColor.translateAlternateColorCodes('&', "&bTime alive: &a0" + ChatUtil.formatTime(Gamer.getGamer(player.getUniqueId()).getTimeAlive())));
         timealive.setScore(7);
     }
-
 
     public void clearBoard() {
         for (String entry : board.getEntries()) {
@@ -119,8 +134,7 @@ public class GameBoard {
 
     public static void resetScoreboard() {
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (SG.districts_mode)
-                removeFromTeam(p, hwnet.survivalgames.handlers.Team.getTeam(p).getName());
+            if (SG.districts_mode) removeFromTeam(p, hwnet.survivalgames.handlers.Team.getTeam(p).getName());
             getBoard(p).unregisterGame();
             getBoard(p).intializeLobby();
         }
@@ -174,6 +188,8 @@ public class GameBoard {
     }
 
     public String shortName(String str) {
-        return str.substring(0, 16);
+        if (str.length() > 16) {
+            return str.substring(0, 16);
+        } else return str;
     }
 }

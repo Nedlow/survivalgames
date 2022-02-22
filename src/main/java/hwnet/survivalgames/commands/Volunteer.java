@@ -83,7 +83,7 @@ public class Volunteer implements CommandExecutor {
 
 
             TextComponent message = new TextComponent(p.getName() + " has volunteered for your team.");
-            TextComponent accept = new TextComponent(" [ACCEPT] ");
+            TextComponent accept = new TextComponent("[ACCEPT] ");
             accept.setColor(net.md_5.bungee.api.ChatColor.GREEN);
             accept.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/volunteer accept " + p.getName()));
             accept.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("Click to accept").create()));

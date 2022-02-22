@@ -15,13 +15,7 @@ import hwnet.survivalgames.handlers.*;
 import hwnet.survivalgames.handlers.Team;
 import hwnet.survivalgames.listeners.*;
 import hwnet.survivalgames.utils.*;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
-import org.bukkit.Sound;
-import org.bukkit.World;
-import org.bukkit.WorldBorder;
-import org.bukkit.WorldCreator;
+import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -40,7 +34,7 @@ public class SG extends JavaPlugin {
     public static FileConfiguration data = SettingsManager.getInstance().getData();
     public static ConsoleCommandSender cmd = Bukkit.getConsoleSender();
 
-    public static int gamePID, PreGamePID, DMPID, compassPID, fireworksPID;
+    public static int gamePID, PreGamePID, DMPID, compassPID, fireworksPID, votePID;
     public static int pretime, gametime, dmtime, dm, minPlayers, maxPlayers;
 
     public static boolean districts_mode, devMode;
@@ -100,6 +94,7 @@ public class SG extends JavaPlugin {
         }
 
         dmtime = getConfig().getInt("settings.deathmatch") * 60;
+        pretime = getConfig().getInt("settings.pretime") * 60;
         data = SettingsManager.getInstance().getData();
 
         ChatUtil.sendMessage(clogger, ChatColor.GOLD + "==================================");
@@ -116,6 +111,7 @@ public class SG extends JavaPlugin {
                 ResetMap.createBackup(map, this, false);
                 WorldCreator world = new WorldCreator(map.getFileName());
                 world.createWorld();
+                Bukkit.getWorld(world.name()).setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
             }
             ChatUtil.sendMessage(cmd, "A total of " + Map.getAllMaps().size() + " maps.");
             Map.chooseMaps();
@@ -151,6 +147,17 @@ public class SG extends JavaPlugin {
             if (e instanceof Player || e instanceof ArmorStand) continue;
             e.remove();
         }
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            // SCOREBOARD
+            if (!GameBoard.hasBoard(p)) {
+                GameBoard gb = new GameBoard(p);
+                gb.intializeLobby();
+                gb.update(GameBoard.ScoreType.VOTES, null, null);
+            }
+            PointSystem.load(p);
+        }
+
         if (devMode) {
             devMode(cmd, true);
         }
@@ -350,7 +357,7 @@ public class SG extends JavaPlugin {
     }
 
     public static void startPreGameCountdown() {
-        pretime = SG.pl.getConfig().getInt("settings.pretime") * 60;
+        Bukkit.getScheduler().cancelTask(votePID);
         PreGamePID = Bukkit.getScheduler().scheduleSyncRepeatingTask(SG.pl, new Runnable() {
 
             @Override
@@ -397,7 +404,7 @@ public class SG extends JavaPlugin {
                 if (SG.districts_mode) {
                     for (Team t : Team.getAliveTeams()) {
                         for (Player p : t.getAlivePlayers()) {
-                            if (t.getAlivePlayers().size() <= t.getPlayers().size())
+                            if (t.getAlivePlayers().size() < 1)
                                 p.setCompassTarget(Map.getActiveMap().getCenterLocation());
                             else p.setCompassTarget(t.getClosestPlayer(p).getLocation());
                         }
@@ -488,13 +495,13 @@ public class SG extends JavaPlugin {
                     usedSpawns.clear();
                 }
 
-                if (gametime >= (dmtime - 10) && gametime < dmtime) {
-                    /*
+                if (gametime > dmtime && gametime < (dmtime + 10)) {
+
                     for (Gamer gl : Gamer.getGamers()) {
                         gl.getPlayer().playSound(Map.getActiveMap().getCenterLocation(), Sound.BLOCK_NOTE_BLOCK_COW_BELL, 20, 1);
                         gl.getPlayer().sendTitle(ChatColor.translateAlternateColorCodes('&', "&4") + String.valueOf(dmcountdown), "", 5, 10, 5);
                     }
-                    */
+
                     ChatUtil.broadcast("&cDeathmatch in &4&l" + dmcountdown + " &cseconds.");
                     dmcountdown--;
                 }
@@ -506,7 +513,7 @@ public class SG extends JavaPlugin {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         GameBoard.getBoard(p).update(GameBoard.ScoreType.TIME_GAME, "Time left", "&bTime left: &a" + ChatUtil.formatTime(dmtime - gametime));
                     }
-                } else {
+                } else if ((gametime >= 0) && (dmtime - gametime > 0)) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         GameBoard.getBoard(p).update(GameBoard.ScoreType.TIME_GAME, "Time left", "&bTime left: &a" + ChatUtil.formatTime(dmtime));
                     }
@@ -532,6 +539,7 @@ public class SG extends JavaPlugin {
     }
 
     private static void startDeathmatchTimer() {
+        int dmlength = 5 * 60;
         DMPID = Bukkit.getScheduler().scheduleSyncRepeatingTask(SG.pl, new Runnable() {
 
             @Override
@@ -561,6 +569,16 @@ public class SG extends JavaPlugin {
                     }
                     Game.cancelGame();
                 }
+                if (dmlength - dm > 0) {
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        GameBoard.getBoard(p).update(GameBoard.ScoreType.TIME_GAME, "Time left", "&bTime left: &a" + ChatUtil.formatTime(dmlength - dm));
+                    }
+                }
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    GameBoard.getBoard(p).update(GameBoard.ScoreType.TIME_GAME, "Time left", "&bTime left: &a00:00");
+                }
+
+
                 dm++;
             }
         }, 0, 20);
@@ -599,7 +617,6 @@ public class SG extends JavaPlugin {
                     gb.intializeLobby();
                 }
             }
-
             devMode = false;
         } else {
             ChatUtil.sendMessage(sender, "Developer mode enabled. Stopping game engine.");
@@ -619,6 +636,7 @@ public class SG extends JavaPlugin {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 // SCOREBOARD
                 p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+                GameBoard.getBoard(p).remove();
             }
             devMode = true;
         }

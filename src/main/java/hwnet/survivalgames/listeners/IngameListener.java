@@ -44,7 +44,6 @@ public class IngameListener implements Listener {
         moblist.add(EntityType.ZOMBIE);
         moblist.add(EntityType.CAVE_SPIDER);
         moblist.add(EntityType.SPIDER);
-        moblist.add(EntityType.WITCH);
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -122,7 +121,7 @@ public class IngameListener implements Listener {
         e.setCancelled(true);
         if (SG.districts_mode) {
             Team t = Team.getTeam(e.getPlayer());
-            int points = PointSystem.getPoints(e.getPlayer());
+            int points = PointSystem.getPoints(e.getPlayer().getUniqueId());
             String format = ChatUtil.getFormat().replace("%points", String.valueOf(points)).replace("%name", e.getPlayer().getName()).replace("%msg", e.getMessage());
             for (Player p : t.getPlayers()) {
                 p.sendMessage(format);

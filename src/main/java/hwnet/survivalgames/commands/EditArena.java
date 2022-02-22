@@ -47,11 +47,29 @@ public class EditArena implements CommandExecutor {
                 p.sendMessage(ChatColor.RED + "No permission.");
             }
         } else if (label.equalsIgnoreCase("savearena")) {
-            p.getWorld().save();
-            Map map = Map.getMap(p.getLocation().getWorld().getName());
-            ResetMap.createBackup(map, SG.pl, true);
+            if (args.length == 0) {
+                p.sendMessage("Usage: /savearena <filename>");
+                return true;
+            }
+            WorldCreator wc = new WorldCreator(args[0]);
+            World world = wc.createWorld();
+            world.save();
 
+            Map map = Map.getMap(args[0]);
+            if (map == null) {
+                ChatUtil.sendMessage(p, "Map is null.");
+                return true;
+            }
             LocUtil.teleportToLobby(p);
+            Bukkit.unloadWorld(world, true);
+            Bukkit.getScheduler().scheduleSyncDelayedTask(SG.pl, new Runnable() {
+                @Override
+                public void run() {
+                    ResetMap.createBackup(map, SG.pl, true);
+                }
+            }, 20 * 10);
+
+
             String msg = "&aSaved arena &f'&a" + map.getMapName() + "&f'";
             ChatUtil.sendMessage(p, msg);
         }

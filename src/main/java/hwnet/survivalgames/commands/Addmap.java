@@ -20,7 +20,10 @@ public class Addmap implements CommandExecutor {
             } else {
                 String mapname = "";
                 for (int i = 1; i < args.length; i++) {
-                    mapname += (args[i]) + " ";
+                    if (i == args.length - 1) {
+                        mapname += (args[i]) + "";
+                    } else mapname += (args[i]) + " ";
+
                 }
                 FileConfiguration config = SettingsManager.getInstance().getData();
                 config.set("arenas." + args[0] + ".name", mapname);

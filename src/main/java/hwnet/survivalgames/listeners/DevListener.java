@@ -8,6 +8,7 @@ import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.math.Vector2;
 import com.sk89q.worldedit.regions.CylinderRegion;
 import com.sk89q.worldedit.world.World;
+import hwnet.survivalgames.handlers.PointSystem;
 import hwnet.survivalgames.utils.ChatUtil;
 import hwnet.survivalgames.utils.LocUtil;
 import org.bukkit.Bukkit;
@@ -17,6 +18,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Bat;
 import org.bukkit.entity.Creeper;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.Squid;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -26,6 +28,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.event.weather.ThunderChangeEvent;
@@ -39,6 +42,14 @@ public class DevListener implements Listener {
         if (!p.isOp()) {
             e.setKickMessage(ChatColor.RED + "Server is in developer mode!\n" + ChatColor.DARK_PURPLE + "Please contact admin.");
             e.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
+        }
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        Player p = e.getPlayer();
+        if (!PointSystem.load(p)) {
+            PointSystem.initialize(p);
         }
     }
 
@@ -94,17 +105,13 @@ public class DevListener implements Listener {
         }
     }
 
-    /*
     @EventHandler(priority = EventPriority.NORMAL)
-    public void onCreatureSpawn(CreatureSpawnEvent event) {
-        event.setCancelled(true);
+    public void onCreatureSpawn(CreatureSpawnEvent e) {
+        if (e.getEntity() instanceof Bat || e.getEntity() instanceof Squid) e.setCancelled(true);
     }
 
     @EventHandler
     public void onEntitySpawn(EntitySpawnEvent e) {
-        if (e instanceof Bat || e instanceof Squid) e.setCancelled(true);
+        if (e.getEntity() instanceof Bat || e.getEntity() instanceof Squid) e.setCancelled(true);
     }
-
-
-     */
 }

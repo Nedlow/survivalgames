@@ -31,8 +31,8 @@ public class SignCmd implements CommandExecutor {
 
         Player p = (Player) sender;
 
-        if (args.length != 1) {
-            ChatUtil.sendMessage(sender, "Usage: /setsign <type>");
+        if (args.length < 1 && args.length < 3) {
+            ChatUtil.sendMessage(sender, "Usage: /setsign <type> [voteid: 1-8]");
             return true;
         }
 
@@ -43,23 +43,37 @@ public class SignCmd implements CommandExecutor {
             return true;
         }
 
-        if (ClickSign.getSign(target.getLocation()) != null) {
+        if (ClickSign.signExists(target.getLocation())) {
             ClickSign.getSign(target.getLocation()).remove();
             ChatUtil.sendMessage(p, "Replacing current clicksign with a new one.");
         }
         UUID randomUUID = UUID.randomUUID();
-        ClickSign csign = new ClickSign(randomUUID, ClickSign.getType(args[0]), target.getLocation());
-        ChatUtil.sendMessage(p, "Location: " + target.getLocation().getX() + " " + target.getLocation().getY() + " " + target.getLocation().getZ());
-        csign.setSignText();
+        ClickSign.SignType type = ClickSign.getType(args[0]);
+        ClickSign csign = new ClickSign(randomUUID, type, target.getLocation());
+
+        // Debug
+        //ChatUtil.sendMessage(p, "Location: " + target.getLocation().getX() + " " + target.getLocation().getY() + " " + target.getLocation().getZ());
+
 
         FileConfiguration data = SettingsManager.getInstance().getData();
-
+        if (type == ClickSign.SignType.VOTE) {
+            int id = Integer.parseInt(args[1]);
+            if (id < 1 || id > 8) {
+                ChatUtil.sendMessage(p, "Set vote number between 1 and 8!");
+                return true;
+            }
+            csign.setVoteID(id - 1);
+            data.set("signs." + randomUUID + ".voteid", csign.getVoteID());
+        }
         data.set("signs." + randomUUID + ".type", String.valueOf(csign.getType()));
         data.set("signs." + randomUUID + ".location.world", csign.getLocation().getWorld().getName());
         data.set("signs." + randomUUID + ".location.x", csign.getLocation().getX());
         data.set("signs." + randomUUID + ".location.y", csign.getLocation().getY());
         data.set("signs." + randomUUID + ".location.z", csign.getLocation().getZ());
         SettingsManager.getInstance().saveData();
+        csign.setSignText();
+
+        ChatUtil.sendMessage(p, "Created sign: " + csign.getType().toString());
 
         return true;
     }

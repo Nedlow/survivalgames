@@ -9,6 +9,8 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Bat;
 import org.bukkit.entity.GlowSquid;
@@ -17,6 +19,7 @@ import org.bukkit.entity.Squid;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -36,6 +39,7 @@ import hwnet.survivalgames.utils.ChatUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class JoinListener implements Listener {
 
@@ -44,12 +48,37 @@ public class JoinListener implements Listener {
         if (event.getResult() == Result.KICK_FULL) event.setResult(Result.ALLOWED);
     }
 
+
+    public final Block getTargetBlock(Player player, int range) {
+        return player.getTargetBlock((Set<Material>) null, range);
+    }
+
+    @EventHandler
+    public void onVoteSignClick(PlayerInteractEvent e) {
+        // Check for proper case
+        if (e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        if (!(e.getClickedBlock().getState() instanceof Sign)) return;
+        if (!ClickSign.signExists(e.getClickedBlock().getState().getLocation())) return;
+        //Debug
+        //ChatUtil.sendMessage(e.getPlayer(), "Clicked a sign");
+
+        // Get ClickSign instance at given location
+        ClickSign sign = ClickSign.getSign(e.getClickedBlock().getState().getLocation());
+        // Check for proper case
+        if (sign.getType() != ClickSign.SignType.VOTE) return;
+        Player p = e.getPlayer();
+        p.performCommand("vote " + sign.getVoteID());
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
         FileConfiguration c = SG.config;
         LocUtil.teleportToLobby(p);
         SG.clearPlayer(p);
+        if (!PointSystem.load(p)) {
+            PointSystem.initialize(p);
+        }
 
 
         // SCOREBOARD
@@ -61,9 +90,6 @@ public class JoinListener implements Listener {
 
         p.setGameMode(GameMode.ADVENTURE);
         Gamer g = Gamer.getGamer(p);
-        if (!PointSystem.load(p)) {
-            PointSystem.initialize(p);
-        }
         if (p.hasPermission("sg.admin")) {
             ChatUtil.sendMessage(p, "Joined as admin. Type /join to join the game");
             g.setAlive(false);
@@ -108,9 +134,12 @@ public class JoinListener implements Listener {
 
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
-        int points = PointSystem.getPoints(e.getPlayer());
-        e.setMessage(ChatUtil.getFormat().replace("%points", String.valueOf(points)).replace("%name", e.getPlayer().getName()).replace("%msg", e.getMessage()));
-        e.setFormat("");
+        int points = PointSystem.getPoints(e.getPlayer().getUniqueId());
+        String playerName = e.getPlayer().getName();
+        if (e.getPlayer().hasPermission("sg.admin")) {
+            playerName = ChatColor.RED + playerName + ChatColor.RESET;
+        }
+        e.setFormat(ChatUtil.getFormat().replace("%points", String.valueOf(points)).replace("%name", playerName).replace("%msg", e.getMessage()));
     }
 
 

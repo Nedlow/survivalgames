@@ -3,6 +3,8 @@ package hwnet.survivalgames.handlers;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import hwnet.survivalgames.SG;
+import hwnet.survivalgames.utils.ChatUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -10,6 +12,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import hwnet.survivalgames.SettingsManager;
+import org.bukkit.scoreboard.Score;
 
 import static java.util.Map.Entry.comparingByValue;
 import static java.util.stream.Collectors.toMap;
@@ -38,7 +41,7 @@ public class Map {
 
     public static Map getMap(String filename) {
         for (Map map : allMaps) {
-            if (map.fileName == filename) return map;
+            if (map.fileName.equalsIgnoreCase(filename)) return map;
         }
         return null;
     }
@@ -78,6 +81,14 @@ public class Map {
         for (Map map : sortedMap().keySet()) {
             voteMaps.add(map);
         }
+    }
+
+
+    public static Map getMapFromTempID(int tempID) {
+        for (Map map : tempId.keySet()) {
+            if (tempId.get(map).equals(tempID)) return map;
+        }
+        return null;
     }
 
     private static java.util.Map<Map, Integer> sortedMap() {
@@ -152,8 +163,8 @@ public class Map {
 
     public static void chooseMaps() {
         Random rand = new Random();
-        if (Map.getAllMaps().size() >= 6) {
-            for (int id = 1; id < 7; id++) {
+        if (Map.getAllMaps().size() >= 8) {
+            for (int id = 1; id <= 8; id++) {
                 Map map = Map.getAllMaps().get(rand.nextInt(Map.getAllMaps().size()));
                 while (Map.hasTempId(map)) {
                     map = Map.getAllMaps().get(rand.nextInt(Map.getAllMaps().size()));
