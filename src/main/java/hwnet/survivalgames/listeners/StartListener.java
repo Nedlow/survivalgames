@@ -9,6 +9,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.server.ServerListPingEvent;
 
@@ -36,6 +37,13 @@ public class StartListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         if ((e.getCurrentItem().getType() == Material.COMPASS) || (e.getCurrentItem().getType() == Material.PLAYER_HEAD)) {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onInteract(PlayerInteractEvent e) {
+        if (Gamer.getGamer(e.getPlayer()).isSpectator() || !Gamer.getGamer(e.getPlayer()).isAlive()) {
             e.setCancelled(true);
         }
     }

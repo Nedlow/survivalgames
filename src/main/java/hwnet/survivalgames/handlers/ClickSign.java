@@ -7,7 +7,6 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +21,7 @@ public class ClickSign {
     public int voteID = 0;
 
     public static enum SignType {
-        TOP_KILLS, TOP_WINS, TOP_GAMES, TOP_DEATHS, TOP_POINTS, VOTE;
+        TOP_KILLS, TOP_WINS, TOP_GAMES, TOP_DEATHS, TOP_POINTS, VOTE, VOTE_INACTIVE;
     }
 
     public static SignType getType(String type) {
@@ -76,8 +75,13 @@ public class ClickSign {
         this.voteID = id;
     }
 
+    public void setSignType(SignType type) {
+        this.type = type;
+    }
+
     public void remove() {
         SettingsManager.getInstance().getData().set("signs." + getUUID(), null);
+        SettingsManager.getInstance().saveData();
         signs.remove(this);
 
     }
@@ -108,35 +112,60 @@ public class ClickSign {
         switch (type) {
             case TOP_WINS:
                 p = Bukkit.getOfflinePlayer(PointSystem.topWin);
-                sign.setLine(0, ChatColor.GOLD + "" + ChatColor.BOLD + "TOP WINS");
-                sign.setLine(1, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + p.getName());
-                sign.setLine(2, ChatColor.GREEN + "" + ChatColor.BOLD + String.valueOf(PointSystem.getWins(PointSystem.topWin)));
+                sign.setLine(0, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
+                sign.setLine(1, ChatColor.YELLOW + "" + ChatColor.BOLD + p.getName());
+                sign.setLine(2, ChatColor.GOLD + "" + ChatColor.BOLD + String.valueOf(PointSystem.getWins(PointSystem.topWin)) + " Wins");
+                sign.setLine(3, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
                 break;
             case TOP_KILLS:
                 p = Bukkit.getOfflinePlayer(PointSystem.topKill);
-                sign.setLine(0, ChatColor.GOLD + "" + ChatColor.BOLD + "TOP KILLS");
-                sign.setLine(1, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + p.getName());
-                sign.setLine(2, ChatColor.GREEN + "" + ChatColor.BOLD + String.valueOf(PointSystem.getKills(PointSystem.topKill)));
+                sign.setLine(0, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
+                sign.setLine(1, ChatColor.YELLOW + "" + ChatColor.BOLD + p.getName());
+                sign.setLine(2, ChatColor.GOLD + "" + ChatColor.BOLD + String.valueOf(PointSystem.getKills(PointSystem.topKill)) + " Kills");
+                sign.setLine(3, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
                 break;
             case TOP_GAMES:
                 p = Bukkit.getOfflinePlayer(PointSystem.topGames);
-                sign.setLine(0, ChatColor.GOLD + "" + ChatColor.BOLD + "TOP GAMES");
-                sign.setLine(1, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + p.getName());
-                sign.setLine(2, ChatColor.GREEN + "" + ChatColor.BOLD + String.valueOf(PointSystem.getGames(PointSystem.topGames)));
+                sign.setLine(0, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
+                sign.setLine(1, ChatColor.YELLOW + "" + ChatColor.BOLD + p.getName());
+                sign.setLine(2, ChatColor.GOLD + "" + ChatColor.BOLD + String.valueOf(PointSystem.getGames(PointSystem.topGames)) + " Games");
+                sign.setLine(3, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
+                break;
+            case TOP_DEATHS:
+                p = Bukkit.getOfflinePlayer(PointSystem.topDeath);
+                sign.setLine(0, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
+                sign.setLine(1, ChatColor.YELLOW + "" + ChatColor.BOLD + p.getName());
+                sign.setLine(2, ChatColor.GOLD + "" + ChatColor.BOLD + String.valueOf(PointSystem.getDeaths(PointSystem.topDeath)) + " Deaths");
+                sign.setLine(3, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
                 break;
             case VOTE:
                 Map map = Map.getVoteMaps().get(getVoteID());
-                sign.setLine(0, ChatColor.AQUA + "" + ChatColor.BOLD + "==================");
-                sign.setLine(1, "Vote for");
-                sign.setLine(2, ChatColor.DARK_GRAY + map.getMapName());
-                sign.setLine(3, ChatColor.AQUA + "" + ChatColor.BOLD + "==================");
+                sign.setLine(0, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
+                sign.setLine(1, ChatColor.YELLOW + "Vote for");
+                sign.setLine(2, ChatColor.GOLD + map.getMapName());
+                sign.setLine(3, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
                 break;
+            case VOTE_INACTIVE:
+                sign.setLine(0, ChatColor.DARK_RED + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
+                sign.setLine(1, ChatColor.GRAY + "Not");
+                sign.setLine(2, ChatColor.GRAY + "Active");
+                sign.setLine(3, ChatColor.DARK_RED + "" + ChatColor.BOLD + "▉▉▉▉▉▉▉▉▉▉▉");
+                break;
+
         }
         sign.update(true);
     }
 
     public static void updateSigns() {
+        int voteint = 0;
         for (ClickSign sign : signs) {
+            if (voteint > Map.getVoteMaps().size() - 1) {
+                sign.setSignType(SignType.VOTE_INACTIVE);
+            } else {
+                if (sign.getType() == SignType.VOTE) {
+                    voteint++;
+                }
+            }
             sign.setSignText();
         }
     }
@@ -163,6 +192,7 @@ public class ClickSign {
                     SettingsManager.getInstance().saveData();
                     ChatUtil.sendMessage(SG.cmd, "Deleted unused sign");
                 } else {
+                    //if (data.getInt("signs." + uuid + ".voteid") > Map.getVoteMaps().size() - 1) return;
                     ClickSign s = new ClickSign(UUID.fromString(uuid), type, loc);
                     ChatUtil.sendMessage(SG.cmd, "Added sign with type " + s.getType().toString());
                     if (type == SignType.VOTE) {

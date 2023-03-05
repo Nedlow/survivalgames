@@ -1,13 +1,12 @@
 package hwnet.survivalgames.listeners;
 
-import com.sk89q.worldedit.EditSession;
-import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldedit.math.BlockVector2;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.math.Vector2;
 import com.sk89q.worldedit.regions.CylinderRegion;
 import com.sk89q.worldedit.world.World;
+import hwnet.survivalgames.handlers.ClickSign;
+import hwnet.survivalgames.handlers.Gamer;
 import hwnet.survivalgames.handlers.PointSystem;
 import hwnet.survivalgames.utils.ChatUtil;
 import hwnet.survivalgames.utils.LocUtil;
@@ -16,18 +15,21 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Bat;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Squid;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.block.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.server.ServerListPingEvent;
@@ -51,8 +53,48 @@ public class DevListener implements Listener {
         if (!PointSystem.load(p)) {
             PointSystem.initialize(p);
         }
+        if (Gamer.getGamer(p).hasResourcePackEnabled()) p.performCommand("resourcepack enable false");
     }
 
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        // Physical means jump on it
+        if (event.getAction() == Action.PHYSICAL) {
+            Block block = event.getClickedBlock();
+            if (block == null) return;
+            // If the block is farmland (soil)
+            if (block.getType() == Material.FARMLAND) {
+                // Deny event and set the block
+                event.setUseInteractedBlock(Event.Result.DENY);
+                event.setCancelled(true);
+                //block.setTypeIdAndData(block.getType().getId(), block.getData(), true);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onSignBreak(BlockBreakEvent e) {
+        if (!(e.getBlock().getState() instanceof Sign)) return;
+        if (!ClickSign.signExists(e.getBlock().getState().getLocation())) return;
+
+        ClickSign sign = ClickSign.getSign(e.getBlock().getState().getLocation());
+
+        if (sign.getType() == ClickSign.SignType.VOTE)
+            ChatUtil.sendMessage(e.getPlayer(), "Sign removed: " + sign.getType().toString() + " " + (sign.getVoteID() + 1));
+        else ChatUtil.sendMessage(e.getPlayer(), "Sign removed: " + sign.getType().toString());
+        sign.remove();
+    }
+
+    @EventHandler
+    public void onSignPlace(SignChangeEvent e) {
+        if (!(e.getBlock().getState() instanceof Sign)) return;
+        if (ClickSign.signExists(e.getBlock().getState().getLocation())) return;
+        for (int i = 0; i < e.getLines().length; i++) {
+            e.setLine(i, ChatColor.translateAlternateColorCodes('&', e.getLine(i)));
+        }
+    }
+
+    /* PROOF OF CONCEPT FOR WORLDEDIT CUSTOM REGIONS
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
         World world = BukkitAdapter.adapt(LocUtil.getLobbyLocation().getWorld());
@@ -69,6 +111,7 @@ public class DevListener implements Listener {
             ChatUtil.sendMessage(e.getPlayer(), "You are now entering spawn.");
         }
     }
+    */
 
     @EventHandler
     public void onMOTD(ServerListPingEvent e) {

@@ -107,6 +107,9 @@ public class ChatUtil {
     public static void sendMessage(Player p, String msg) {
         p.sendMessage(prefix() + ChatColor.translateAlternateColorCodes('&', msg));
     }
+    public static void sendMessage(CommandSender sender, String msg) {
+        sender.sendMessage(prefix() + msg);
+    }
 
     public static String prefix() {
         return prefix + GRAY;
@@ -116,7 +119,5 @@ public class ChatUtil {
         prefix = ChatColor.translateAlternateColorCodes('&', newPrefix) + RESET + GRAY + " ";
     }
 
-    public static void sendMessage(CommandSender sender, String msg) {
-        sender.sendMessage(prefix() + msg);
-    }
+
 }

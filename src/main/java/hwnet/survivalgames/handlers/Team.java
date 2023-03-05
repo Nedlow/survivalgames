@@ -128,6 +128,7 @@ public class Team {
         }
 
         for (Player plo : this.getAlivePlayers()) {
+            if (plo == p) continue;
             if (p.getLocation().distance(plo.getLocation()) < lastDistance) {
                 lastDistance = p.getLocation().distance(plo.getLocation());
                 first = plo;

@@ -1,5 +1,6 @@
 package hwnet.survivalgames.commands;
 
+import hwnet.survivalgames.handlers.Gamer;
 import hwnet.survivalgames.utils.ChatUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -34,17 +35,27 @@ public class ResourcepackEn implements CommandExecutor {
 
         // DONT DELETE
 
-        if (args.length != 1) {
+        if (args.length < 1) {
             ChatUtil.sendMessage(p, "Usage: /resourcepack enable|disable to use our recommended resource pack.");
             return true;
         }
 
+        boolean sendMSG = true;
+
+        if (args.length == 2 && args[1].equalsIgnoreCase("false")) {
+            sendMSG = false;
+        }
+
         if (args[0].contains("enable")) {
-            ChatUtil.sendMessage(sender, "Installing SapixCraft 64x...");
+            if (sendMSG)
+                ChatUtil.sendMessage(sender, "Installing SapixCraft 64x...");
             p.setResourcePack(url);
+            Gamer.getGamer(p).setResourcepack(true);
         } else if (args[0].contains("disable")) {
-            ChatUtil.sendMessage(sender, "Uninstalling SapixCraft 64x...");
+            if (sendMSG)
+                ChatUtil.sendMessage(sender, "Uninstalling SapixCraft 64x...");
             p.setResourcePack("http://google.com");
+            Gamer.getGamer(p).setResourcepack(false);
         }
 
         return false;

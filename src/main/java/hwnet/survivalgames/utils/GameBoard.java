@@ -22,7 +22,7 @@ public class GameBoard {
     private List<Score> mapScores = new ArrayList<>();
     private Scoreboard board;
     private Objective lobby, ingame;
-    private Score lobby_timeleft, ingame_timeleft, kills, timealive, stats_games, stats_wins;
+    private Score lobby_timeleft, ingame_timeleft, kills, timealive, stats_games, stats_wins, stats_kills, stats_points;
     private Player player;
 
     public static enum ScoreType {
@@ -89,14 +89,21 @@ public class GameBoard {
 
 
         lobby.getScore("").setScore(11);
-        lobby_timeleft = lobby.getScore("Time till start: " + ChatUtil.formatTime(SG.pretime));
+        lobby_timeleft = lobby.getScore(ChatColor.AQUA + "Time till start: " + ChatColor.YELLOW + ChatUtil.formatTime(SG.pretime));
         lobby_timeleft.setScore(10);
         lobby.getScore(" ").setScore(9);
         lobby.getScore(ChatColor.translateAlternateColorCodes('&', "&b&lStats for &a&l" + player.getName() + ":")).setScore(8);
-        stats_wins = lobby.getScore(ChatColor.translateAlternateColorCodes('&', "&b - Wins: &a") + PointSystem.getWins(player.getUniqueId()));
+        stats_wins = lobby.getScore(ChatColor.translateAlternateColorCodes('&', "&b - Wins: &a  ") + PointSystem.getWins(player.getUniqueId()));
         stats_wins.setScore(7);
         stats_games = lobby.getScore(ChatColor.translateAlternateColorCodes('&', "&b - Games: &a") + PointSystem.getGames(player.getUniqueId()));
         stats_games.setScore(6);
+        stats_kills = lobby.getScore(ChatColor.translateAlternateColorCodes('&', "&b - Kills:    &a") + PointSystem.getKills(player.getUniqueId()));
+        stats_kills.setScore(5);
+        stats_points = lobby.getScore(ChatColor.translateAlternateColorCodes('&', "&b - Points: &a") + PointSystem.getPoints(player.getUniqueId()));
+        stats_points.setScore(4);
+        lobby.getScore("  ").setScore(3);
+        lobby.getScore("   ").setScore(2);
+        lobby.getScore(ChatUtil.centerText("  &5&l&o&nvigorousgaming.se&r", 45)).setScore(1);
     }
 
     public void intializeGame() {
@@ -114,6 +121,9 @@ public class GameBoard {
         // KILLS
         kills = ingame.getScore(ChatColor.translateAlternateColorCodes('&', "&bKills: &a0"));
         kills.setScore(8);
+        ingame.getScore("  ").setScore(6);
+        ingame.getScore("   ").setScore(5);
+        ingame.getScore(ChatUtil.centerText("  &5&l&o&nvigorousgaming.se&r", 45)).setScore(4);
     }
 
     public void intiliazeDeath() {
@@ -135,6 +145,7 @@ public class GameBoard {
     public static void resetScoreboard() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (SG.districts_mode) removeFromTeam(p, hwnet.survivalgames.handlers.Team.getTeam(p).getName());
+            p.getScoreboard().clearSlot(DisplaySlot.SIDEBAR);
             getBoard(p).unregisterGame();
             getBoard(p).intializeLobby();
         }

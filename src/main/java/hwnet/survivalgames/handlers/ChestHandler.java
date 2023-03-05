@@ -76,7 +76,7 @@ public class ChestHandler {
 
     private static void fillChests(Inventory inv) {
         inv.clear();
-        int low = 3;
+        int low = 4;
         int high = 9;
         Random rnd = new Random();
 

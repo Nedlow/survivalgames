@@ -9,7 +9,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import hwnet.survivalgames.SettingsManager;
 import hwnet.survivalgames.handlers.Map;
 
-public class Addmap implements CommandExecutor {
+public class AddArenaCMD implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -23,7 +23,6 @@ public class Addmap implements CommandExecutor {
                     if (i == args.length - 1) {
                         mapname += (args[i]) + "";
                     } else mapname += (args[i]) + " ";
-
                 }
                 FileConfiguration config = SettingsManager.getInstance().getData();
                 config.set("arenas." + args[0] + ".name", mapname);

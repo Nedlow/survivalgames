@@ -31,10 +31,18 @@ public class SignCmd implements CommandExecutor {
 
         Player p = (Player) sender;
 
+        if (args.length == 1 && args[0].equalsIgnoreCase("update")) {
+            for (ClickSign s : ClickSign.getAllSigns()) {
+                s.setSignText();
+            }
+            return true;
+        }
+
         if (args.length < 1 && args.length < 3) {
             ChatUtil.sendMessage(sender, "Usage: /setsign <type> [voteid: 1-8]");
             return true;
         }
+
 
         Block target = getTargetBlock(p, 10);
 

@@ -26,8 +26,9 @@ public class Leave implements CommandExecutor {
 
         Player p = (Player) sender;
 
-        LocUtil.teleportToLobby(p);
-        if (Gamer.getGamer(p.getUniqueId()) != null) Gamer.getGamer(p).remove();
+        Gamer g = Gamer.getGamer(p.getUniqueId());
+        g.setAlive(false);
+        g.setSpectator(true);
 
         return false;
 

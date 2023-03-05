@@ -49,6 +49,7 @@ public class Game {
             }
             Map.getActiveMap().initializeSpawns();
             SG.config.getConfigurationSection("settings").set("lastmap", Map.getActiveMap().getFileName());
+            SG.pretime = SG.pl.getConfig().getInt("settings.pretime") * 60;
             SG.pl.saveConfig();
             World w = Map.getActiveMap().getWorld();
             WorldBorder border = w.getWorldBorder();
@@ -62,7 +63,7 @@ public class Game {
 
             Bukkit.getWorld(Map.getActiveMap().getFileName()).setTime(0);
             if (SG.districts_mode) {
-                for (Gamer gamer : Gamer.getGamers()) {
+                for (Gamer gamer : Gamer.getRealGamers()) {
                     if (Team.hasTeam(gamer.getPlayer())) continue;
                     Team.addPlayerToAvailableTeam(gamer.getPlayer());
                 }
@@ -71,7 +72,7 @@ public class Game {
                 }
                 ChatUtil.sendMessage(SG.clogger, Team.getAliveTeams().size() + " districts participating in this game.");
             } else {
-                ChatUtil.sendMessage(SG.clogger, Gamer.getAliveGamers().size() + " tributes participating in this game.");
+                ChatUtil.sendMessage(SG.clogger, Gamer.getRealGamers().size() + " tributes participating in this game.");
             }
 
 
@@ -86,7 +87,21 @@ public class Game {
                 GameBoard.getBoard(p).intializeGame();
                 if (pla.isSpectator()) {
                     p.teleport(Map.getActiveMap().getCenterLocation());
-                    p.setGameMode(GameMode.SPECTATOR);
+                    p.setGameMode(GameMode.ADVENTURE);
+                    for (Gamer gl : Gamer.getAliveGamers()) {
+                        gl.getPlayer().hidePlayer(SG.pl, p);
+                    }
+                    p.setAllowFlight(true);
+                    p.setFlying(true);
+                    // Player Menu item
+                    ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+                    ItemMeta meta = head.getItemMeta();
+                    meta.setDisplayName(ChatColor.GOLD + "Spectate Menu");
+                    List<String> lore = new ArrayList<String>();
+                    lore.add("Click on a head to teleport");
+                    meta.setLore(lore);
+                    head.setItemMeta(meta);
+                    p.getInventory().setItem(0, head);
                 } else {
                     i = rand.nextInt(24);
                     while (usedSpawns.contains(i)) {
@@ -109,7 +124,6 @@ public class Game {
                     i++;
                 }
             }
-            //SG.SBU.updateScoreboard();
             Bukkit.getScheduler().scheduleSyncDelayedTask(SG.pl, new Runnable() {
                 @Override
                 public void run() {
@@ -205,13 +219,17 @@ public class Game {
                     for (Player p : Team.getAliveTeams().get(0).getAlivePlayers()) {
                         PointSystem.addPoints(p, 200);
                         PointSystem.addWin(p);
-                        PointSystem.save(p);
+                        Bukkit.getScheduler().scheduleSyncDelayedTask(SG.pl, () -> {
+                            PointSystem.save(p);
+                        }, 20);
                     }
                 } else {
                     Gamer g = Gamer.getAliveGamers().get(0);
                     PointSystem.addPoints(g.getPlayer(), 200);
                     PointSystem.addWin(g.getPlayer());
-                    PointSystem.save(g.getPlayer());
+                    Bukkit.getScheduler().scheduleSyncDelayedTask(SG.pl, () -> {
+                        PointSystem.save(g.getPlayer());
+                    }, 20);
                 }
                 Game.cancelGame();
             }
@@ -309,12 +327,12 @@ public class Game {
     public static void cancelGame() {
         GameState.setState(GameState.RESTARTING);
         for (Player pl : Bukkit.getOnlinePlayers()) {
-            PointSystem.save(pl);
             if (SG.config.getBoolean("bungeecord")) SG.sendToServer(pl, SG.config.getString("lobbyserver"));
             else {
                 pl.setGameMode(GameMode.ADVENTURE);
                 SG.clearPlayer(pl);
                 LocUtil.teleportToLobby(pl);
+                PointSystem.save(pl);
             }
         }
 
@@ -353,7 +371,6 @@ public class Game {
         Map.clearInfo();
         // Choose 6 random maps for vote cycle
         Map.chooseMaps();
-
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (!p.isOp()) {
                 Gamer.getGamer(p);
@@ -361,6 +378,7 @@ public class Game {
             }
             if (Gamer.getGamer(p.getUniqueId()) != null) if (Gamer.getGamer(p).isSpectator())
                 ChatUtil.sendMessage(p, "You spectated last game. To participate, you need to type /join while there are available slots.");
+            PointSystem.load(p);
         }
         if (!SG.checkCanStart())
             ChatUtil.broadcast("We need " + (SG.minPlayers - Gamer.getRealGamers().size()) + " more tributes to start game.");
@@ -370,13 +388,15 @@ public class Game {
         motd.add("&a" + (24 - Gamer.getAliveGamers().size()) + " spots left!");
         ChatUtil.setMOTD(motd);
         GameState.setState(GameState.WAITING);
+        Bukkit.getScheduler().scheduleSyncDelayedTask(SG.pl, new Runnable() {
+            @Override
+            public void run() {
+                PointSystem.FetchTopWinFromDB();
+                PointSystem.FetchTopKillFromDB();
+                PointSystem.FetchTopDeathsFromDB();
 
-        PointSystem.FetchTopWinFromDB();
-        PointSystem.FetchTopKillFromDB();
-        PointSystem.FetchTopDeathsFromDB();
-
-        //TODO: Finalize signs
-        ClickSign.updateSigns();
-
+                ClickSign.updateSigns();
+            }
+        }, 20);
     }
 }

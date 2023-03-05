@@ -6,16 +6,13 @@ import hwnet.survivalgames.utils.LocUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
-import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Bat;
 import org.bukkit.entity.GlowSquid;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Squid;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -67,7 +64,21 @@ public class JoinListener implements Listener {
         // Check for proper case
         if (sign.getType() != ClickSign.SignType.VOTE) return;
         Player p = e.getPlayer();
-        p.performCommand("vote " + sign.getVoteID());
+        p.performCommand("vote " + (sign.getVoteID() + 1));
+    }
+
+    @EventHandler
+    public void onSignBreak(BlockBreakEvent e) {
+        if (!(e.getBlock().getState() instanceof Sign)) return;
+        if (!ClickSign.signExists(e.getBlock().getState().getLocation())) return;
+
+        ClickSign sign = ClickSign.getSign(e.getBlock().getState().getLocation());
+
+        if (sign.getType() == ClickSign.SignType.VOTE)
+            ChatUtil.sendMessage(e.getPlayer(), "Sign removed: " + sign.getType().toString() + " " + sign.getVoteID());
+        else
+            ChatUtil.sendMessage(e.getPlayer(), "Sign removed: " + sign.getType().toString());
+        sign.remove();
     }
 
     @EventHandler
@@ -76,20 +87,25 @@ public class JoinListener implements Listener {
         FileConfiguration c = SG.config;
         LocUtil.teleportToLobby(p);
         SG.clearPlayer(p);
-        if (!PointSystem.load(p)) {
-            PointSystem.initialize(p);
-        }
-
-
-        // SCOREBOARD
-        if (!GameBoard.hasBoard(p)) {
-            GameBoard gb = new GameBoard(p);
-            gb.intializeLobby();
-        }
+        Gamer g = Gamer.getGamer(p);
+        Bukkit.getScheduler().scheduleSyncDelayedTask(SG.pl, new Runnable() {
+            @Override
+            public void run() {
+                if (!PointSystem.load(p)) {
+                    PointSystem.initialize(p);
+                }
+                if (g.hasResourcePackEnabled())
+                    p.performCommand("resourcepack enable false");
+                // SCOREBOARD
+                if (!GameBoard.hasBoard(p)) {
+                    GameBoard gb = new GameBoard(p);
+                    gb.intializeLobby();
+                }
+            }
+        }, 20);
 
 
         p.setGameMode(GameMode.ADVENTURE);
-        Gamer g = Gamer.getGamer(p);
         if (p.hasPermission("sg.admin")) {
             ChatUtil.sendMessage(p, "Joined as admin. Type /join to join the game");
             g.setAlive(false);
@@ -101,10 +117,11 @@ public class JoinListener implements Listener {
             ChatUtil.sendVoteMenu(p);
             ChatUtil.broadcast(ChatColor.AQUA + "" + Gamer.getRealGamers().size() + "/24" + ChatColor.GREEN + " tributes waiting to play.");
             if (!SG.checkCanStart())
-                ChatUtil.sendMessage(p, "" + (SG.minPlayers - Gamer.getRealGamers().size()) + " more tributes needed to start game.");
+                ChatUtil.broadcast((SG.minPlayers - Gamer.getRealGamers().size()) + " more tributes needed to start game.");
         }
-
-        ChatUtil.sendMessage(p, "We recommend the use of the SapixCraft resource-pack. To use this pack, use /resourcepack enable");
+        if (!g.hasResourcePackEnabled())
+            ChatUtil.sendMessage(p, "We recommend the use of the SapixCraft resource-pack. To use this pack, use /resourcepack enable");
+        else p.performCommand("resourcepack enable false");
 
         List<String> motd = new ArrayList<String>();
         // SPECIAL CHARS: ⚝ ✰ ✩
@@ -124,8 +141,8 @@ public class JoinListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         Gamer g = Gamer.getGamer(event.getPlayer());
-        g.remove();
         PointSystem.save(event.getPlayer());
+        g.remove();
         List<String> motd = new ArrayList<String>();
         motd.add("&6SurvalGames&7: &aIn Lobby");
         motd.add("&a" + (24 - Gamer.getRealGamers().size()) + " spots left!");
@@ -216,10 +233,6 @@ public class JoinListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
-    public void onTarget(EntityTargetEvent event) {
-        event.setCancelled(true);
-    }
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {

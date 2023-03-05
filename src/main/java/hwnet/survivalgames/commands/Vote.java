@@ -16,8 +16,7 @@ public class Vote implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
-        if (!(sender instanceof Player))
-            return true;
+        if (!(sender instanceof Player)) return true;
 
         Player p = (Player) sender;
 
@@ -36,6 +35,9 @@ public class Vote implements CommandExecutor {
                 return true;
             }
             int id = Integer.parseInt(args[0]) - 1;
+            if (id > Map.getVoteMaps().size()) {
+                ChatUtil.sendMessage(p, ChatColor.RED + "That map doesn't exist!");
+            }
             Map map = Map.getMapById(id);
             if (map == null) {
                 ChatUtil.sendMessage(p, ChatColor.RED + "That map doesn't exist!");

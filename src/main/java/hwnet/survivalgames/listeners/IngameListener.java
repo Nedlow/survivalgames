@@ -166,7 +166,7 @@ public class IngameListener implements Listener {
     public void onNaturalDamage(EntityDamageEvent e) {
         if (e.getEntity() instanceof Player) {
             Player p = (Player) e.getEntity();
-            if (!Gamer.getGamer(p.getUniqueId()).isAlive()) {
+            if (!Gamer.getGamer(p.getUniqueId()).isAlive() || Gamer.getGamer(p.getUniqueId()).isSpectator()) {
                 e.setCancelled(true);
                 return;
             }
@@ -184,7 +184,20 @@ public class IngameListener implements Listener {
 
         if (target instanceof Player) {
             Player p = (Player) target;
-            if (!Gamer.getGamer(p.getUniqueId()).isAlive()) {
+            if (!Gamer.getGamer(p.getUniqueId()).isAlive() || Gamer.getGamer(p.getUniqueId()).isSpectator()) {
+                e.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onTarget(EntityTargetEvent e) {
+        Entity target = e.getTarget();
+        Entity entity = e.getEntity();
+
+        if (target instanceof Player) {
+            Player p = (Player) target;
+            if (!Gamer.getGamer(p.getUniqueId()).isAlive() || Gamer.getGamer(p.getUniqueId()).isSpectator()) {
                 e.setCancelled(true);
             }
         }
@@ -193,8 +206,17 @@ public class IngameListener implements Listener {
     @EventHandler
     public void onLeaveClick(PlayerInteractEvent e) {
         if (e.getItem() == null) return;
+        if (!Gamer.getGamer(e.getPlayer().getUniqueId()).isAlive() || Gamer.getGamer(e.getPlayer().getUniqueId()).isSpectator())
+            e.setCancelled(true);
         if (e.getItem().getType() == Material.PLAYER_HEAD) {
             SG.specGUI.open(e.getPlayer());
+        }
+    }
+
+    @EventHandler
+    public void onInteract(PlayerInteractEvent e) {
+        if (Gamer.getGamer(e.getPlayer()).isSpectator() || !Gamer.getGamer(e.getPlayer()).isAlive()) {
+            e.setCancelled(true);
         }
     }
 

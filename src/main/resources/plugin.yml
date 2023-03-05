@@ -42,6 +42,9 @@ commands:
   resourcepack:
   setsign:
     permission: sg.admin
+  editsign:
+    permission: sg.admin
+    description: Open the sign menu to edit.
   cancel:
     permission: sg.admin
     usage: /cancel [time in seconds]

@@ -1,6 +1,5 @@
 package hwnet.survivalgames.handlers;
 
-import java.awt.*;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,7 +11,6 @@ import hwnet.survivalgames.utils.ChatUtil;
 import org.bukkit.entity.Player;
 
 import hwnet.survivalgames.SG;
-import hwnet.survivalgames.SettingsManager;
 
 public class PointSystem {
 
@@ -29,6 +27,7 @@ public class PointSystem {
     }
 
     public static int getWins(UUID uuid) {
+        if (wins.get(uuid) == null) return 0;
         return wins.get(uuid);
     }
 
@@ -37,10 +36,12 @@ public class PointSystem {
     }
 
     public static int getKills(UUID uuid) {
+        if (kills.get(uuid) == null) return 0;
         return kills.get(uuid);
     }
 
     public static int getDeaths(UUID uuid) {
+        if (deaths.get(uuid) == null) return 0;
         return deaths.get(uuid);
     }
 
@@ -101,8 +102,7 @@ public class PointSystem {
 
     public static boolean removePoints(Player p, int amount) {
         int old = points.get(p.getUniqueId());
-        if (old - amount >= 0)
-            return false;
+        if (old - amount >= 0) return false;
         points.put(p.getUniqueId(), old - amount);
         return true;
     }
@@ -112,7 +112,8 @@ public class PointSystem {
     }
 
     public synchronized static void save(Player p) {
-        String sql = "update playerdata set wins=?,games=?,kills=?,deaths=?,points=? where uuid='" + p.getUniqueId().toString() + "'";
+        String sql = "update playerdata set wins=?,games=?,kills=?,deaths=?,points=?,resourcepack=? where uuid='" + p.getUniqueId().toString() + "'";
+        SG.openConnection();
         try {
             PreparedStatement pstmt = SG.connection.prepareStatement(sql);
             pstmt.setInt(1, wins.get(p.getUniqueId()));
@@ -120,7 +121,11 @@ public class PointSystem {
             pstmt.setInt(3, kills.get(p.getUniqueId()));
             pstmt.setInt(4, deaths.get(p.getUniqueId()));
             pstmt.setInt(5, points.get(p.getUniqueId()));
+            if (Gamer.getGamer(p.getUniqueId()).hasResourcePackEnabled())
+                pstmt.setInt(6, 1);
+            else pstmt.setInt(6, 0);
             pstmt.executeUpdate();
+            SG.connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -129,6 +134,7 @@ public class PointSystem {
     public synchronized static boolean load(Player p) {
         boolean status = false;
         String sql = "Select * from playerdata where uuid='" + p.getUniqueId() + "'";
+        SG.openConnection();
         try {
             Statement stmt = SG.connection.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -140,11 +146,18 @@ public class PointSystem {
                 kills.put(UUID.fromString(rs.getString("uuid")), rs.getInt("kills"));
                 deaths.put(UUID.fromString(rs.getString("uuid")), rs.getInt("deaths"));
                 points.put(UUID.fromString(rs.getString("uuid")), rs.getInt("points"));
+
+                if (rs.getInt("resourcepack") == 1) {
+                    Gamer.getGamer(p).setResourcepack(true);
+                } else {
+                    Gamer.getGamer(p).setResourcepack(false);
+                }
                 status = true;
             } else {
                 ChatUtil.sendMessage(p, "Could not load UUID");
                 status = false;
             }
+            SG.connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
             status = false;
@@ -153,12 +166,13 @@ public class PointSystem {
     }
 
     public synchronized static void initialize(Player p) {
-        String sql = "insert into playerdata(uuid,games,wins,kills,deaths,points) values(?,0,0,0,0,0)";
+        String sql = "insert into playerdata(uuid,games,wins,kills,deaths,points,resourcepack) values(?,0,0,0,0,0,0)";
+        SG.openConnection();
         try {
             PreparedStatement pstmt = SG.connection.prepareStatement(sql);
             pstmt.setString(1, p.getUniqueId().toString());
             pstmt.executeUpdate();
-
+            SG.connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -170,13 +184,6 @@ public class PointSystem {
         ChatUtil.sendMessage(SG.cmd, "Initialized UUID " + p.getUniqueId());
     }
 
-
-    public static void sendToDatabase() {
-        for (UUID uuid : wins.keySet()) {
-
-        }
-    }
-
     public static void initializeTopStats() {
         FetchTopWinFromDB();
         FetchTopKillFromDB();
@@ -186,12 +193,15 @@ public class PointSystem {
 
     public synchronized static void FetchTopWinFromDB() {
         String sql = "Select uuid, wins from playerdata order by wins desc limit 1";
+        SG.openConnection();
         try {
             Statement stmt = SG.connection.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-
-            topWin = UUID.fromString(rs.getString("uuid"));
-            wins.put(topWin, rs.getInt("wins"));
+            if (rs.next()) {
+                topWin = UUID.fromString(rs.getString("uuid"));
+                wins.put(topWin, rs.getInt("wins"));
+            }
+            SG.connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -199,12 +209,15 @@ public class PointSystem {
 
     public synchronized static void FetchTopKillFromDB() {
         String sql = "Select uuid, kills from playerdata order by kills desc limit 1";
+        SG.openConnection();
         try {
             Statement stmt = SG.connection.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-
-            kills.put(UUID.fromString(rs.getString("uuid")), rs.getInt("kills"));
-            topKill = UUID.fromString(rs.getString("uuid"));
+            if (rs.next()) {
+                kills.put(UUID.fromString(rs.getString("uuid")), rs.getInt("kills"));
+                topKill = UUID.fromString(rs.getString("uuid"));
+            }
+            SG.connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -212,12 +225,15 @@ public class PointSystem {
 
     public synchronized static void FetchTopDeathsFromDB() {
         String sql = "Select uuid, deaths from playerdata order by deaths desc limit 1";
+        SG.openConnection();
         try {
             Statement stmt = SG.connection.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-
-            deaths.put(UUID.fromString(rs.getString("uuid")), rs.getInt("deaths"));
-            topDeath = UUID.fromString(rs.getString("uuid"));
+            if (rs.next()) {
+                deaths.put(UUID.fromString(rs.getString("uuid")), rs.getInt("deaths"));
+                topDeath = UUID.fromString(rs.getString("uuid"));
+            }
+            SG.connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -225,12 +241,16 @@ public class PointSystem {
 
     public synchronized static void FetchTopGamesFromDB() {
         String sql = "Select uuid, games from playerdata order by games desc limit 1";
+        SG.openConnection();
         try {
             Statement stmt = SG.connection.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
+            if (rs.next()) {
+                games.put(UUID.fromString(rs.getString("uuid")), rs.getInt("games"));
+                topGames = UUID.fromString(rs.getString("uuid"));
+            }
 
-            games.put(UUID.fromString(rs.getString("uuid")), rs.getInt("games"));
-            topGames = UUID.fromString(rs.getString("uuid"));
+            SG.connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }

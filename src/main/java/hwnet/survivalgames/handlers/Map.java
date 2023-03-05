@@ -173,7 +173,7 @@ public class Map {
             }
         } else {
             for (int i = 1; i <= Map.getAllMaps().size(); i++) {
-                Map map = Map.getAllMaps().get(i);
+                Map map = Map.getAllMaps().get(i - 1);
                 Map.setTempId(map, i);
             }
         }

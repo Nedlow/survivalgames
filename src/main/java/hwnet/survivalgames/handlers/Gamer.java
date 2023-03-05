@@ -19,6 +19,7 @@ public class Gamer {
     private boolean spectator = false;
     private int kills = 0;
     private int timeAlive = 0;
+    private boolean resourcepack;
 
     private static List<Gamer> gamers = new ArrayList<Gamer>();
 
@@ -100,6 +101,14 @@ public class Gamer {
         for (Gamer g : gamers)
             if (g.getName().equalsIgnoreCase(p.getName())) return g;
         return new Gamer(p);
+    }
+
+    public boolean hasResourcePackEnabled() {
+        return resourcepack;
+    }
+
+    public void setResourcepack(boolean bool) {
+        resourcepack = bool;
     }
 
     /**

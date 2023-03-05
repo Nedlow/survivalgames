@@ -24,7 +24,8 @@ public class LocUtil {
     public static void teleportToLobby(Player p) {
         if (config.getConfigurationSection("lobby").getBoolean("enabled")) {
             p.teleport(spawnLocation);
-            ChatUtil.sendMessage(SG.cmd, "Sent " + p.getName() + " to lobby spawn");
+
+            //ChatUtil.sendMessage(SG.cmd, "Sent " + p.getName() + " to lobby spawn"); // Debug
         }
     }
 
